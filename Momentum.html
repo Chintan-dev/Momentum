@@ -139,6 +139,15 @@ html[data-theme="light"] .topbar{background:rgba(255,255,255,.72)}
 .empty .e{font-size:38px;margin-bottom:10px;opacity:.85}
 .empty h3{margin:0 0 5px;color:var(--text2);font-size:15px}
 .empty p{margin:0 auto 14px;font-size:13.5px;max-width:340px}
+.banner{
+  display:flex;align-items:center;gap:13px;padding:14px 16px;border-radius:var(--r2);margin-bottom:18px;
+  background:linear-gradient(135deg,rgba(255,176,32,.14),rgba(255,92,122,.08));border:1px solid rgba(255,176,32,.3);
+}
+.banner .bi{font-size:20px;line-height:1}
+.banner b{display:block;font-size:14px;font-weight:700;margin-bottom:2px}
+.banner span{display:block;font-size:12.6px;color:var(--text2);line-height:1.5}
+.meter{height:8px;border-radius:99px;background:var(--card3);overflow:hidden;margin:8px 0 6px}
+.meter i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--good),var(--warn) 70%,var(--bad));transition:width .5s var(--ease)}
 
 /* ================= HERO ================= */
 .hero{
@@ -442,6 +451,10 @@ a{color:var(--accent2)}
    MOMENTUM — offline habit + task tracker (single file)
    All data lives in this browser's localStorage. No network.
    ========================================================= */
+/* older phone browsers */
+if(typeof structuredClone !== 'function'){
+  window.structuredClone = o => JSON.parse(JSON.stringify(o));
+}
 
 /* ---------- icons ---------- */
 const P = {
@@ -493,34 +506,6 @@ const col = id => COLORS.find(c => c.id === id) || COLORS[0];
 const EMOJI = ['✅','💪','🏃','🧘','📚','💧','🌙','☀️','🍎','🥗','💊','🦷','🧹','💰','💻','✍️','🎨','🎸','🧠','📵','🚭','🙏','❤️','🐕','☎️','🛏️','🚿','🥇','🔥','⚡','🌱','🎯'];
 const CATS = ['Health','Fitness','Mind','Work','Study','Home','Money','Social','Creative','Other'];
 
-/* ---------- storage ---------- */
-const KEY = 'momentum.v1';
-const DEFAULTS = {
-  habits: [], logs: {}, tasks: [], notes: {}, focus: [],
-  settings: { name:'', theme:'dark', accent:'violet', weekStart:1, notify:false, sound:true, confetti:true },
-  meta: { created: Date.now(), v: 1 }
-};
-function load(){
-  try{
-    const raw = localStorage.getItem(KEY);
-    if(!raw) return structuredClone(DEFAULTS);
-    const d = JSON.parse(raw);
-    const s = Object.assign(structuredClone(DEFAULTS), d);
-    s.settings = Object.assign(structuredClone(DEFAULTS.settings), d.settings || {});
-    return s;
-  }catch(e){ console.warn('load failed', e); return structuredClone(DEFAULTS); }
-}
-let S = load();
-let saveTimer = null;
-function save(now){
-  clearTimeout(saveTimer);
-  const write = () => {
-    try{ localStorage.setItem(KEY, JSON.stringify(S)); }
-    catch(e){ toast('Storage full — export a backup', 'err'); }
-  };
-  if(now) write(); else saveTimer = setTimeout(write, 220);
-}
-
 /* ---------- date utils ---------- */
 const pad = n => String(n).padStart(2,'0');
 const dk = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
@@ -547,6 +532,157 @@ function fmtLong(d){ return DAYN[d.getDay()]+', '+MON[d.getMonth()]+' '+d.getDat
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clamp = (n,a,b) => Math.max(a, Math.min(b,n));
+
+/* =========================================================
+   LOCAL STORAGE LAYER
+   Every byte of this app lives in this browser's localStorage.
+   Nothing is ever sent anywhere. This layer makes that safe:
+     · probes storage up-front, falls back to memory if blocked
+     · normalises + migrates whatever it reads back
+     · keeps a rolling daily backup it can self-heal from
+     · survives quota errors and corrupt records
+   ========================================================= */
+const KEY    = 'momentum.v1';         // the data
+const UIKEY  = 'momentum.ui.v1';      // where you were: view, filters, running timer
+const BAKKEY = 'momentum.v1.backup';  // yesterday's known-good copy
+const DEFAULTS = {
+  habits: [], logs: {}, tasks: [], notes: {}, focus: [],
+  settings: { name:'', theme:'dark', accent:'violet', weekStart:1, notify:false, sound:true, confetti:true },
+  meta: { created: Date.now(), v: 1 }
+};
+
+/* Storage handle. If localStorage is blocked (private window, file:// with
+   site-data disabled, quota of zero) we transparently swap in a memory store
+   so the whole app still runs — it just cannot persist, and says so loudly. */
+const DB = (function(){
+  const mem = Object.create(null);
+  const memStore = {
+    ok:false, reason:'',
+    getItem: k => (k in mem ? mem[k] : null),
+    setItem: (k,v) => { mem[k] = String(v); },
+    removeItem: k => { delete mem[k]; },
+    keys: () => Object.keys(mem)
+  };
+  try{
+    if(typeof localStorage === 'undefined' || !localStorage) throw new Error('not available');
+    const probe = '__momentum_probe__';
+    localStorage.setItem(probe, 'ok');
+    if(localStorage.getItem(probe) !== 'ok') throw new Error('write did not read back');
+    localStorage.removeItem(probe);
+    return {
+      ok:true, reason:'',
+      getItem: k => localStorage.getItem(k),
+      setItem: (k,v) => localStorage.setItem(k,v),
+      removeItem: k => localStorage.removeItem(k),
+      keys: () => { try{ return Object.keys(localStorage); }catch(e){ return []; } }
+    };
+  }catch(e){
+    memStore.reason = (e && e.name === 'SecurityError')
+      ? 'the browser is blocking site data here (private window, or third-party/site-data settings)'
+      : ((e && e.message) || 'unavailable');
+    return memStore;
+  }
+})();
+let bootNotice = '';      // shown once after boot if something needed saying
+let storageError = false; // true after a failed write, until one succeeds
+
+/* Repair anything missing or malformed, so an old or hand-edited backup
+   can never crash a render. */
+function normalize(d){
+  const s = Object.assign(structuredClone(DEFAULTS), d || {});
+  s.settings = Object.assign(structuredClone(DEFAULTS.settings), (d && d.settings) || {});
+  s.meta = Object.assign({ created: Date.now(), v: 1 }, (d && d.meta) || {});
+  if(!Array.isArray(s.habits)) s.habits = [];
+  if(!Array.isArray(s.tasks))  s.tasks  = [];
+  if(!Array.isArray(s.focus))  s.focus  = [];
+  if(!s.logs  || typeof s.logs  !== 'object') s.logs  = {};
+  if(!s.notes || typeof s.notes !== 'object') s.notes = {};
+
+  s.habits = s.habits.filter(h => h && h.id && h.name).map(h => {
+    const f = (h.freq && typeof h.freq === 'object') ? h.freq : { t:'daily' };
+    if(!['daily','days','weekly'].includes(f.t)) f.t = 'daily';
+    if(f.t === 'days' && !Array.isArray(f.days)) f.days = [1,2,3,4,5];
+    if(f.t === 'weekly') f.per = clamp(parseInt(f.per) || 3, 1, 7);
+    return Object.assign({ icon:'✅', color:'violet', cat:'Other', type:'check', target:1,
+      unit:'', reminder:'', note:'', created:TODAY(), archived:false }, h,
+      { freq:f, target: Math.max(1, parseInt(h.target) || 1), archived: !!h.archived });
+  });
+  s.tasks = s.tasks.filter(t => t && t.id && t.title).map(t =>
+    Object.assign({ notes:'', due:'', pri:2, tag:'', done:false, doneAt:'', created:TODAY(), sub:[] }, t,
+      { sub: Array.isArray(t.sub) ? t.sub.filter(x => x && typeof x.t === 'string') : [],
+        pri: [1,2,3].includes(t.pri) ? t.pri : 2, done: !!t.done }));
+  s.focus = s.focus.filter(f => f && f.date && f.min > 0);
+  Object.keys(s.logs).forEach(id => {
+    if(!s.habits.some(h => h.id === id)) { delete s.logs[id]; return; }   // orphaned logs
+    const o = s.logs[id];
+    if(!o || typeof o !== 'object'){ delete s.logs[id]; return; }
+    Object.keys(o).forEach(k => { const n = Number(o[k]); if(!(n > 0)) delete o[k]; else o[k] = n; });
+  });
+  Object.keys(s.notes).forEach(k => {
+    const n = s.notes[k];
+    if(!n || typeof n !== 'object' || (!n.text && !n.mood)) delete s.notes[k];
+  });
+  s.settings.weekStart = [0,1,6].includes(s.settings.weekStart) ? s.settings.weekStart : 1;
+  if(!COLORS.some(c => c.id === s.settings.accent)) s.settings.accent = 'violet';
+  if(!['dark','light','system'].includes(s.settings.theme)) s.settings.theme = 'dark';
+  return s;
+}
+
+function load(){
+  if(!DB.ok) bootNotice = 'Running without saved storage — ' + DB.reason + '. Your work stays only until you close this tab, so export a backup before you leave.';
+  const raw = DB.getItem(KEY);
+  if(!raw) return structuredClone(DEFAULTS);
+  try{
+    return normalize(JSON.parse(raw));
+  }catch(e){
+    try{ DB.setItem(KEY + '.corrupt', raw); }catch(_){}          // never throw the damaged copy away
+    const bak = DB.getItem(BAKKEY);
+    if(bak){
+      try{
+        const s = normalize(JSON.parse(bak));
+        bootNotice = 'The main record was unreadable, so Momentum restored your automatic backup from ' +
+          (DB.getItem(BAKKEY + '.date') || 'an earlier day') + '.';
+        return s;
+      }catch(_){}
+    }
+    bootNotice = 'Saved data could not be read and no backup was available. The damaged copy is kept under the key momentum.v1.corrupt if you want to recover it by hand.';
+    return structuredClone(DEFAULTS);
+  }
+}
+
+let S = load();
+let saveTimer = null, lastBackupDay = DB.getItem(BAKKEY + '.date') || '';
+function save(now){
+  clearTimeout(saveTimer);
+  const write = () => {
+    const json = JSON.stringify(S);
+    try{
+      DB.setItem(KEY, json);
+      if(storageError){ storageError = false; toast('Saving again — storage recovered', 'ok'); }
+      if(DB.ok && lastBackupDay !== TODAY()){          // one rolling snapshot per day
+        try{ DB.setItem(BAKKEY, json); DB.setItem(BAKKEY + '.date', TODAY()); lastBackupDay = TODAY(); }catch(_){}
+      }
+    }catch(e){
+      try{                                             // reclaim the backup slot and retry once
+        DB.removeItem(BAKKEY); DB.removeItem(KEY + '.corrupt');
+        DB.setItem(KEY, json);
+        lastBackupDay = '';
+      }catch(_){
+        if(!storageError) toast('Storage is full — export a backup and clear old data', 'err');
+        storageError = true;
+      }
+    }
+  };
+  if(now) write(); else saveTimer = setTimeout(write, 220);
+}
+/* flush any pending debounced write immediately */
+function flush(){ if(saveTimer){ clearTimeout(saveTimer); saveTimer = null; save(true); } }
+function storageBytes(){
+  let n = 0;
+  try{ [KEY, UIKEY, BAKKEY].forEach(k => { const v = DB.getItem(k); if(v) n += v.length; }); }
+  catch(e){ try{ n = JSON.stringify(S).length; }catch(_){} }
+  return n;
+}
 
 /* ---------- habit maths ---------- */
 const goalOf = h => h.type === 'count' ? Math.max(1, h.target||1) : 1;
@@ -666,6 +802,51 @@ const VIEWS = [
 ];
 let V = 'today';
 const ui = { taskFilter:'today', habitCat:'all', showArchived:false, jDate:TODAY(), statRange:30 };
+
+/* Where you were, kept locally too — so a reload drops you back exactly
+   where you left off, running focus timer included. */
+let sessTimer = null;
+function saveSession(now){
+  clearTimeout(sessTimer);
+  const write = () => {
+    try{
+      DB.setItem(UIKEY, JSON.stringify({
+        view: V, taskFilter: ui.taskFilter, habitCat: ui.habitCat, showArchived: ui.showArchived,
+        statRange: ui.statRange, jDate: ui.jDate, savedAt: Date.now(),
+        timer: { running:T.running, endAt:T.endAt, left:T.left, total:T.total,
+                 preset:T.preset, habit:T.habit, br:T.break }
+      }));
+    }catch(e){}
+  };
+  if(now) write(); else sessTimer = setTimeout(write, 400);
+}
+function restoreSession(){
+  let d = null;
+  try{ d = JSON.parse(DB.getItem(UIKEY) || 'null'); }catch(e){}
+  if(!d) return;
+  if(VIEWS.some(x => x.id === d.view)) V = d.view;
+  if(['today','upcoming','someday','all','done'].includes(d.taskFilter)) ui.taskFilter = d.taskFilter;
+  if(typeof d.habitCat === 'string') ui.habitCat = d.habitCat;
+  ui.showArchived = !!d.showArchived;
+  if([7,30,90].includes(d.statRange)) ui.statRange = d.statRange;
+  ui.jDate = (d.jDate && /^\d{4}-\d{2}-\d{2}$/.test(d.jDate) && d.jDate <= TODAY()) ? d.jDate : TODAY();
+
+  const t = d.timer;
+  if(t && t.total){
+    T.total = t.total; T.preset = t.preset || 25; T.habit = t.habit || ''; T.break = !!t.br;
+    if(t.running && t.endAt){
+      const left = Math.round((t.endAt - Date.now())/1000);
+      if(left > 0){                       // still ticking — pick it right back up
+        T.left = left; T.endAt = t.endAt; T.running = true;
+        clearInterval(T.tick); T.tick = setInterval(tickTimer, 250);
+      } else {                            // it ran out while the app was closed
+        T.left = 0; T.running = false; T.finishedWhileAway = true;
+      }
+    } else {
+      T.left = clamp(t.left || t.total, 0, t.total);
+    }
+  }
+}
 const $ = s => document.querySelector(s);
 const el = (id) => document.getElementById(id);
 
@@ -718,10 +899,11 @@ function render(){
     stats: viewStats, journal: viewJournal, focus: viewFocus, settings: viewSettings
   }[V]();
   const c = el('content'), sc = c.scrollTop;
-  c.innerHTML = '<div class="wrap view">' + body + '</div>';
+  c.innerHTML = '<div class="wrap view">' + storageBanner() + body + '</div>';
   c.scrollTop = resetScroll ? 0 : sc;
   resetScroll = false;
   if(V === 'focus') paintTimer();
+  saveSession();
 }
 function topActions(){
   if(V === 'habits') return '<button class="btn pri" data-act="newHabit">'+ic('plus')+'<span>New habit</span></button>';
@@ -732,6 +914,28 @@ function topActions(){
 }
 
 /* ---------- shared bits ---------- */
+function storageBanner(){
+  let h = '';
+  if(!DB.ok || storageError){
+    const full = storageError;
+    h += '<div class="banner"><div class="bi">'+(full?'💾':'⚠️')+'</div><div style="flex:1;min-width:0">'
+      + '<b>'+(full ? 'Storage is full — recent changes may not be saved' : 'Nothing is being saved on this device')+'</b>'
+      + '<span>'+(full
+          ? 'Export a backup now, then clear completed tasks or delete habits you no longer track to free space.'
+          : esc(DB.reason.charAt(0).toUpperCase() + DB.reason.slice(1)) + '. Momentum still works, but everything disappears when you close this tab.')
+      + '</span></div>'
+      + '<button class="btn sm" data-act="exportData">'+ic('down')+'Export</button></div>';
+  }
+  /* Something happened to your data on the way in — too important for a toast
+     you might blink and miss, so it stays until dismissed. */
+  if(bootNotice){
+    h += '<div class="banner" style="background:linear-gradient(135deg,rgba(77,166,255,.14),rgba(124,92,255,.08));border-color:rgba(77,166,255,.3)">'
+      + '<div class="bi">💡</div><div style="flex:1;min-width:0"><b>About your saved data</b>'
+      + '<span>'+esc(bootNotice)+'</span></div>'
+      + '<button class="x" data-act="dismissNotice">'+ic('x')+'</button></div>';
+  }
+  return h;
+}
 function ring(pctv, size, stroke, color){
   const r = (size - stroke)/2, C = 2*Math.PI*r, off = C*(1 - clamp(pctv,0,1));
   return '<svg viewBox="0 0 '+size+' '+size+'">'
@@ -867,10 +1071,13 @@ function habitCard(h,k){
     : h.type === 'count'
       ? '<div class="counter"><button data-act="dec" data-id="'+h.id+'" data-k="'+k+'">&minus;</button><div class="v">'+v+'<small>/'+g+'</small></div><button data-act="inc" data-id="'+h.id+'" data-k="'+k+'">+</button></div>'
       : '<button class="tick '+(done?'on':'')+'" data-act="toggle" data-id="'+h.id+'" data-k="'+k+'">'+ic('check',3.2)+'</button>';
+  const i = S.habits.findIndex(x => x.id === h.id);
   const menu = ui.menu === h.id ? '<div class="menu">'
       + '<button data-act="openHabit" data-id="'+h.id+'">'+ic('stats')+'View details</button>'
-      + '<button data-act="editHabit" data-id="'+h.id+'">'+ic('edit')+'Edit habit</button>'
-      + '<button data-act="archive" data-id="'+h.id+'">'+ic('archive')+(h.archived?'Restore':'Archive')+'</button><hr>'
+      + '<button data-act="editHabit" data-id="'+h.id+'">'+ic('edit')+'Edit habit</button><hr>'
+      + '<button data-act="move" data-id="'+h.id+'" data-d="-1" '+(i<=0?'disabled style="opacity:.35"':'')+'>'+ic('up')+'Move up</button>'
+      + '<button data-act="move" data-id="'+h.id+'" data-d="1" '+(i>=S.habits.length-1?'disabled style="opacity:.35"':'')+'>'+ic('down')+'Move down</button><hr>'
+      + '<button data-act="archive" data-id="'+h.id+'">'+ic('archive')+(h.archived?'Restore':'Archive')+'</button>'
       + '<button class="d" data-act="delHabit" data-id="'+h.id+'">'+ic('trash')+'Delete</button></div>' : '';
   return '<div class="hcard" style="'+habitStyle(h)+'">'
     + '<div class="top"><div class="hico" data-act="openHabit" data-id="'+h.id+'">'+esc(h.icon||'✅')+'</div>'
@@ -1404,8 +1611,7 @@ function beep(){
    ========================================================= */
 function viewSettings(){
   const s = S.settings;
-  let bytes = 0; try{ bytes = new Blob([JSON.stringify(S)]).size; }catch(e){}
-  const kb = (bytes/1024).toFixed(1);
+  const kb = (storageBytes()/1024).toFixed(1);
   let h = '<div class="card" style="margin-bottom:16px"><div class="sect-h"><h2>Personal</h2></div>'
     + '<div class="field"><label>Your name (used in greetings)</label><input class="inp" id="sName" value="'+esc(s.name)+'" placeholder="Sujit"></div>'
     + '<div class="field" style="margin-bottom:0"><label>Week starts on</label><select class="inp" id="sWeek">'
@@ -1427,9 +1633,25 @@ function viewSettings(){
     + '<div class="srow"><div class="t"><b>Habit reminders</b><span>Browser notifications while this page is open. Set a time on each habit.</span></div>'
       + '<button class="switch '+(s.notify?'on':'')+'" data-act="notify"></button></div></div>';
 
+  const used = storageBytes(), pctUsed = clamp(used/(5*1024*1024), 0, 1);
+  const bakDate = DB.getItem(BAKKEY + '.date');
+  h += '<div class="card" style="margin-bottom:16px"><div class="sect-h"><h2>Local storage</h2>'
+    + '<span class="c" style="'+(DB.ok?'color:var(--good)':'color:var(--bad)')+'">'+(DB.ok ? (storageError ? 'full' : 'working') : 'unavailable')+'</span></div>'
+    + '<div class="mini" style="line-height:1.6">'
+      + (DB.ok
+        ? 'Everything — habits, every logged day, tasks, journal entries and focus sessions — is written straight to this browser\'s local storage on this device. It is saved the instant you tap, again when you leave the page, and every 15 seconds while you work. No account, no server, no network request.'
+        : '<b style="color:var(--bad)">Not saving.</b> ' + esc(DB.reason) + '. Momentum is running from memory only — export a backup before closing this tab.')
+    + '</div>'
+    + '<div class="meter"><i style="width:'+(Math.max(1.5,pctUsed*100)).toFixed(1)+'%"></i></div>'
+    + '<div class="mini" style="display:flex"><span>'+kb+' KB used</span><div class="sp"></div><span>~5 MB available</span></div>'
+    + '<div class="srow" style="margin-top:6px"><div class="t"><b>Automatic daily backup</b>'
+      + '<span>'+(bakDate ? 'A second copy is kept inside this browser, last written '+fmtDay(bakDate)+'. If the main record is ever damaged, Momentum restores from it on its own.' : 'A second copy is written once a day as soon as you make a change.')+'</span></div>'
+      + (bakDate ? '<button class="btn sm" data-act="restoreBackup">'+ic('reset')+'Restore</button>' : '') + '</div>'
+    + '</div>';
+
   h += '<div class="card" style="margin-bottom:16px"><div class="sect-h"><h2>Your data</h2><span class="c">'+kb+' KB</span></div>'
-    + '<div class="mini" style="margin-bottom:14px;line-height:1.6">Everything lives in this browser on this device — nothing is uploaded anywhere. '
-    + 'Clearing the browser\'s site data erases it, so export a backup now and then. To move to your phone, copy this file across and import the backup.</div>'
+    + '<div class="mini" style="margin-bottom:14px;line-height:1.6">Clearing the browser\'s site data erases everything, so export a backup now and then. '
+    + 'To move to your phone, copy this file across and import the backup.</div>'
     + '<div style="display:flex;gap:9px;flex-wrap:wrap">'
       + '<button class="btn" data-act="exportData">'+ic('down')+'Export backup</button>'
       + '<button class="btn" data-act="importData">'+ic('up')+'Import backup</button>'
@@ -1547,10 +1769,9 @@ function importData(){
       try{
         const d = JSON.parse(r.result);
         if(!d || !Array.isArray(d.habits)) throw 0;
-        S = Object.assign(structuredClone(DEFAULTS), d);
-        S.settings = Object.assign(structuredClone(DEFAULTS.settings), d.settings||{});
-        save(true); applyTheme(); render();
-        toast('Backup restored', 'ok');
+        S = normalize(d);
+        save(true); applyTheme(); resetScroll = true; render();
+        toast('Backup restored — ' + S.habits.length + ' habits, ' + S.tasks.length + ' tasks', 'ok');
       }catch(e){ toast('That file is not a Momentum backup', 'err'); }
       f.value = '';
     };
@@ -1620,6 +1841,11 @@ document.addEventListener('click', e => {
     case 'newHabit': editHabit(null); break;
     case 'editHabit': editHabit(id); break;
     case 'menu': ui.menu = ui.menu === id ? null : id; render(); break;
+    case 'move': {
+      const i = S.habits.findIndex(x => x.id === id), j = i + (+btn.dataset.d);
+      if(i < 0 || j < 0 || j >= S.habits.length) break;
+      const tmp = S.habits[i]; S.habits[i] = S.habits[j]; S.habits[j] = tmp;
+      ui.menu = id; save(true); render(); break; }
     case 'cat': ui.habitCat = btn.dataset.c; render(); break;
     case 'toggleArchived': ui.showArchived = !ui.showArchived; ui.habitCat = 'all'; render(); break;
     case 'archive': { const h = H(); h.archived = !h.archived; save(true); closeModal(); render(); toast(h.archived ? 'Archived' : 'Restored', 'ok'); break; }
@@ -1686,11 +1912,29 @@ document.addEventListener('click', e => {
         toast(p === 'granted' ? 'Reminders on (while the app is open)' : 'Permission denied', p === 'granted' ? 'ok' : 'err');
       });
       break; }
+    case 'dismissNotice': bootNotice = ''; render(); break;
     case 'exportData': exportData(); break;
     case 'importData': importData(); break;
+    case 'restoreBackup': {
+      const bak = DB.getItem(BAKKEY);
+      if(!bak){ toast('No automatic backup stored yet', 'err'); break; }
+      const when = DB.getItem(BAKKEY + '.date') || 'an earlier day';
+      ask('Restore the automatic backup?', 'This replaces everything currently in the app with the copy saved on ' + esc(when) + '. Anything logged since then is lost — export a backup first if you are unsure.', 'Restore it', () => {
+        try{
+          S = normalize(JSON.parse(bak));
+          lastBackupDay = '';                       // let today write a fresh snapshot
+          save(true); applyTheme(); resetScroll = true; render();
+          toast('Restored the backup from ' + when, 'ok');
+        }catch(e){ toast('That backup could not be read', 'err'); }
+      });
+      break; }
     case 'copyData': copyJSON(); break;
     case 'resetData': ask('Erase everything?', 'All habits, logs, tasks, journal entries and focus sessions on this device will be deleted. This cannot be undone — export a backup first.', 'Erase everything', () => {
-      S = structuredClone(DEFAULTS); save(true); applyTheme(); resetScroll = true; go('today'); toast('All data erased'); }); break;
+      S = structuredClone(DEFAULTS);
+      [UIKEY, BAKKEY, BAKKEY + '.date', KEY + '.corrupt'].forEach(k => { try{ DB.removeItem(k); }catch(e){} });
+      lastBackupDay = ''; storageError = false;
+      Object.assign(ui, { taskFilter:'today', habitCat:'all', showArchived:false, jDate:TODAY(), statRange:30, menu:null });
+      save(true); applyTheme(); resetScroll = true; go('today'); toast('All data erased'); }); break;
   }
 });
 document.addEventListener('keydown', e => {
@@ -1715,7 +1959,25 @@ document.addEventListener('input', e => {
   if(e.target.id === 'sWeek'){ S.settings.weekStart = +e.target.value; save(true); render(); }
   if(e.target.id === 'tHabit'){ T.habit = e.target.value; }
 });
-window.addEventListener('beforeunload', () => { jSave(); save(true); });
+/* Commit everything the moment the app might go away. Phones frequently kill a
+   backgrounded tab without ever firing beforeunload, so visibilitychange and
+   pagehide are the ones that actually matter on mobile. */
+function commit(){ try{ jSave(); flush(); save(true); saveSession(true); }catch(e){} }
+window.addEventListener('beforeunload', commit);
+window.addEventListener('pagehide', commit);
+document.addEventListener('visibilitychange', () => { if(document.hidden) commit(); });
+window.addEventListener('blur', commit);
+
+/* Two windows open on the same machine? Keep them in step. */
+window.addEventListener('storage', e => {
+  if(!e || e.key !== KEY || !e.newValue) return;
+  try{
+    const incoming = normalize(JSON.parse(e.newValue));
+    if(JSON.stringify(incoming) === JSON.stringify(S)) return;
+    S = incoming; applyTheme(); render();
+    toast('Updated from another window', 'ok');
+  }catch(err){}
+});
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if(S.settings.theme === 'system'){ applyTheme(); render(); } });
 
 /* reminders + day rollover */
@@ -1745,13 +2007,24 @@ setInterval(() => {
   try{ el('manifest').href = 'data:application/json,' + encodeURIComponent(JSON.stringify(man)); }catch(e){}
 
   applyTheme();
+  restoreSession();
   const list = todayList();
   window.__allDone = list.length > 0 && list.every(x => isDone(x, TODAY()));
   render();
 
-  if(!S.habits.length && !S.tasks.length){
+  /* a focus session that ran out while the app was closed still counts */
+  if(T.finishedWhileAway){
+    T.finishedWhileAway = false;
+    finishTimer(false);
+    setTimeout(() => toast('Your focus session finished while the app was closed — logged', 'ok'), 900);
+  }
+  if(bootNotice){
+    setTimeout(() => toast(DB.ok ? 'Check the notice at the top' : 'Not saving — see the notice at the top', 'err'), 600);
+  } else if(!S.habits.length && !S.tasks.length){
     setTimeout(() => toast('Welcome to Momentum — press H to add your first habit', 'ok'), 700);
   }
+  /* belt and braces: a periodic commit means even a hard kill loses nothing */
+  setInterval(() => { flush(); saveSession(true); }, 15000);
 })();
 </script>
 </body>

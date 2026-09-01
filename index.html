@@ -1,0 +1,2031 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Momentum — Habit Tracker</title>
+<meta name="description" content="Premium offline habit &amp; task tracker. All data stays on your device.">
+<meta name="theme-color" content="#0A0C11">
+<meta name="color-scheme" content="dark light">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Momentum">
+<link id="favicon" rel="icon">
+<link id="manifest" rel="manifest">
+<style>
+/* ================= TOKENS ================= */
+:root{
+  --accent:#7C5CFF; --accentRGB:124,92,255; --accent2:#4DA6FF;
+  --bg:#0A0C11; --bg2:#0E1119; --card:#141926; --card2:#1B2231; --card3:#222b3d;
+  --text:#EAEEF7; --text2:#B4BDD0; --muted:#7D879C;
+  --line:rgba(255,255,255,.075); --line2:rgba(255,255,255,.16);
+  --good:#33D69F; --warn:#FFB020; --bad:#FF5C7A; --info:#4DA6FF;
+  --r:20px; --r2:14px; --r3:10px;
+  --sh:0 12px 34px rgba(0,0,0,.42);
+  --sh2:0 4px 14px rgba(0,0,0,.28);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+}
+html[data-theme="light"]{
+  --bg:#F4F6FB; --bg2:#FFFFFF; --card:#FFFFFF; --card2:#F3F5FA; --card3:#E9EDF6;
+  --text:#141A26; --text2:#414B60; --muted:#7B8598;
+  --line:rgba(16,24,40,.09); --line2:rgba(16,24,40,.2);
+  --sh:0 12px 30px rgba(16,24,40,.09);
+  --sh2:0 3px 10px rgba(16,24,40,.07);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:15px;line-height:1.5;overflow:hidden;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  font-variant-numeric:tabular-nums;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(720px 460px at 8% -6%, rgba(var(--accentRGB),.20), transparent 62%),
+    radial-gradient(620px 420px at 96% 4%, rgba(77,166,255,.13), transparent 60%),
+    radial-gradient(560px 380px at 60% 104%, rgba(51,214,159,.08), transparent 62%);
+}
+html[data-theme="light"] body::before{opacity:.6}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:99px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+::selection{background:rgba(var(--accentRGB),.35)}
+.hide{display:none !important}
+
+/* ================= SHELL ================= */
+#app{position:relative;z-index:1;display:flex;height:100vh;height:100dvh}
+.sidebar{
+  width:246px;flex:0 0 246px;background:rgba(255,255,255,.02);backdrop-filter:blur(14px);
+  border-right:1px solid var(--line);display:flex;flex-direction:column;
+  padding:20px 12px calc(14px + var(--sab));
+}
+html[data-theme="light"] .sidebar{background:rgba(255,255,255,.66)}
+.brand{display:flex;align-items:center;gap:11px;padding:6px 10px 18px}
+.brand .logo{
+  width:36px;height:36px;border-radius:11px;flex:0 0 36px;display:grid;place-items:center;
+  background:linear-gradient(140deg,var(--accent),var(--accent2));box-shadow:0 6px 18px rgba(var(--accentRGB),.4);
+}
+.brand .logo svg{width:20px;height:20px;color:#fff}
+.brand b{font-size:16.5px;letter-spacing:-.3px;font-weight:700;display:block}
+.brand small{color:var(--muted);font-size:11px;letter-spacing:.3px}
+.nav{display:flex;flex-direction:column;gap:3px;flex:1;overflow-y:auto}
+.nav .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:1.1px;color:var(--muted);padding:14px 12px 6px;font-weight:700}
+.nav button{
+  display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:12px;
+  color:var(--text2);font-weight:550;font-size:14.5px;transition:.18s var(--ease);width:100%;text-align:left;position:relative;
+}
+.nav button svg{width:19px;height:19px;flex:0 0 19px;opacity:.85}
+.nav button:hover{background:var(--card2);color:var(--text)}
+.nav button.on{background:rgba(var(--accentRGB),.15);color:var(--text);font-weight:650}
+.nav button.on svg{color:var(--accent);opacity:1}
+.nav button.on::before{content:"";position:absolute;left:-12px;top:50%;transform:translateY(-50%);width:3px;height:20px;border-radius:0 3px 3px 0;background:var(--accent)}
+.nav .badge{margin-left:auto;background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;min-width:20px;text-align:center}
+.sidefoot{padding:12px 8px 0;border-top:1px solid var(--line);margin-top:8px}
+.streakbox{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:14px;background:linear-gradient(135deg,rgba(255,176,32,.16),rgba(255,92,122,.1));border:1px solid rgba(255,176,32,.22)}
+.streakbox .f{font-size:20px;line-height:1}
+.streakbox b{font-size:16px;display:block;line-height:1.15}
+.streakbox span{font-size:11px;color:var(--muted)}
+
+main{flex:1;min-width:0;display:flex;flex-direction:column;position:relative}
+.topbar{
+  min-height:62px;display:flex;align-items:center;gap:12px;padding:10px 24px;
+  border-bottom:1px solid var(--line);background:rgba(10,12,17,.55);backdrop-filter:blur(16px);
+  z-index:20;padding-top:calc(10px + var(--sat));
+}
+html[data-theme="light"] .topbar{background:rgba(255,255,255,.72)}
+.topbar h1{margin:0;font-size:19px;font-weight:700;letter-spacing:-.4px}
+.topbar .sub{color:var(--muted);font-size:12.5px;margin-top:1px}
+.sp{flex:1}
+.content{flex:1;overflow-y:auto;overflow-x:hidden;padding:22px 24px calc(44px + var(--sab));-webkit-overflow-scrolling:touch}
+.wrap{max-width:1140px;margin:0 auto}
+.view{animation:fade .3s var(--ease)}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ================= BUTTONS ================= */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 15px;border-radius:12px;
+  background:var(--card2);border:1px solid var(--line);color:var(--text);font-weight:600;font-size:14px;
+  transition:.16s var(--ease);white-space:nowrap;
+}
+.btn:hover{background:var(--card3);border-color:var(--line2);transform:translateY(-1px)}
+.btn:active{transform:translateY(0) scale(.98)}
+.btn svg{width:17px;height:17px}
+.btn.pri{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent;color:#fff;box-shadow:0 6px 18px rgba(var(--accentRGB),.34)}
+.btn.pri:hover{box-shadow:0 9px 24px rgba(var(--accentRGB),.46);filter:brightness(1.06)}
+.btn.ghost{background:transparent}
+.btn.ghost:hover{background:var(--card2)}
+.btn.danger{color:var(--bad);border-color:rgba(255,92,122,.3)}
+.btn.danger:hover{background:rgba(255,92,122,.12)}
+.btn.sm{padding:6px 11px;font-size:13px;border-radius:10px}
+.btn.icon{padding:8px;width:36px;height:36px;border-radius:11px}
+.btn.icon.sm{width:30px;height:30px;padding:5px}
+.btn[disabled]{opacity:.45;pointer-events:none}
+
+/* ================= CARDS ================= */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--sh2)}
+.grid{display:grid;gap:14px}
+.sect{margin-bottom:24px}
+.sect-h{display:flex;align-items:center;gap:10px;margin:0 2px 12px}
+.sect-h h2{margin:0;font-size:15.5px;font-weight:700;letter-spacing:-.2px}
+.sect-h .c{color:var(--muted);font-size:12.5px;font-weight:600;background:var(--card2);padding:2px 9px;border-radius:99px}
+.empty{text-align:center;padding:36px 20px;color:var(--muted)}
+.empty .e{font-size:38px;margin-bottom:10px;opacity:.85}
+.empty h3{margin:0 0 5px;color:var(--text2);font-size:15px}
+.empty p{margin:0 auto 14px;font-size:13.5px;max-width:340px}
+.banner{
+  display:flex;align-items:center;gap:13px;padding:14px 16px;border-radius:var(--r2);margin-bottom:18px;
+  background:linear-gradient(135deg,rgba(255,176,32,.14),rgba(255,92,122,.08));border:1px solid rgba(255,176,32,.3);
+}
+.banner .bi{font-size:20px;line-height:1}
+.banner b{display:block;font-size:14px;font-weight:700;margin-bottom:2px}
+.banner span{display:block;font-size:12.6px;color:var(--text2);line-height:1.5}
+.meter{height:8px;border-radius:99px;background:var(--card3);overflow:hidden;margin:8px 0 6px}
+.meter i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--good),var(--warn) 70%,var(--bad));transition:width .5s var(--ease)}
+
+/* ================= HERO ================= */
+.hero{
+  display:flex;align-items:center;gap:26px;padding:24px 26px;border-radius:24px;margin-bottom:20px;
+  background:linear-gradient(135deg,rgba(var(--accentRGB),.17),rgba(77,166,255,.06) 55%,transparent),var(--card);
+  border:1px solid var(--line);box-shadow:var(--sh);position:relative;overflow:hidden;
+}
+.hero::after{content:"";position:absolute;right:-60px;top:-70px;width:230px;height:230px;border-radius:50%;background:radial-gradient(circle,rgba(var(--accentRGB),.2),transparent 68%)}
+.ring{position:relative;flex:0 0 126px;width:126px;height:126px}
+.ring svg{transform:rotate(-90deg);width:126px;height:126px}
+.ring .rt{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.ring .rt b{font-size:29px;font-weight:750;letter-spacing:-1px;line-height:1}
+.ring .rt span{font-size:10.5px;color:var(--muted);letter-spacing:.7px;text-transform:uppercase;font-weight:650;display:block;margin-top:3px}
+.hero .hi{flex:1;min-width:0;position:relative;z-index:1}
+.hero .hi h2{margin:0 0 5px;font-size:25px;font-weight:750;letter-spacing:-.7px}
+.hero .hi p{margin:0 0 14px;color:var(--text2);font-size:14px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--text2)}
+html[data-theme="light"] .chip{background:var(--card2)}
+.chip b{color:var(--text);font-weight:700}
+
+/* ================= HABIT ROW ================= */
+.hrow{
+  display:flex;align-items:center;gap:13px;padding:13px 15px;border-radius:var(--r2);
+  background:var(--card);border:1px solid var(--line);transition:.18s var(--ease);position:relative;overflow:hidden;
+}
+.hrow::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--hc,var(--accent));opacity:.9}
+.hrow:hover{border-color:var(--line2);box-shadow:var(--sh2);transform:translateX(2px)}
+.hrow.done{background:linear-gradient(90deg,rgba(51,214,159,.09),transparent 45%),var(--card)}
+.hrow.done .hn{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(125,135,156,.5)}
+.hico{
+  width:40px;height:40px;flex:0 0 40px;border-radius:12px;display:grid;place-items:center;font-size:20px;cursor:pointer;
+  background:var(--hcs);border:1px solid var(--hcb);
+}
+.hmid{flex:1;min-width:0;cursor:pointer}
+.hn{font-weight:650;font-size:14.8px;letter-spacing:-.15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hs{font-size:12px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.hs .dot{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.5}
+.tick{
+  width:32px;height:32px;flex:0 0 32px;border-radius:50%;border:2px solid var(--line2);
+  display:grid;place-items:center;transition:.22s var(--ease);background:transparent;
+}
+.tick svg{width:17px;height:17px;color:#fff;opacity:0;transform:scale(.4);transition:.22s var(--ease)}
+.tick:hover{border-color:var(--hc,var(--accent));transform:scale(1.09)}
+.tick.on{background:var(--hc,var(--accent));border-color:var(--hc,var(--accent))}
+.tick.on svg{opacity:1;transform:scale(1)}
+.counter{display:flex;align-items:center;gap:3px;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:3px}
+.counter button{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:var(--text2);font-size:15px;font-weight:700;transition:.14s;line-height:1}
+.counter button:hover{background:var(--card3);color:var(--text)}
+.counter .v{min-width:56px;text-align:center;font-size:13px;font-weight:700}
+.counter .v small{color:var(--muted);font-weight:600}
+.week{display:flex;gap:4px}
+.week i{width:15px;height:15px;border-radius:5px;background:var(--card3);display:block;transition:.2s;position:relative}
+.week i.f{background:var(--hc,var(--accent))}
+.week i.p{background:var(--hc,var(--accent));opacity:.45}
+.week i.t{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--line2)}
+.week i.na{opacity:.25}
+
+/* ================= HABIT CARD ================= */
+.hcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(288px,1fr));gap:14px}
+.hcard{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;transition:.2s var(--ease);position:relative;overflow:hidden;box-shadow:var(--sh2)}
+.hcard::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,var(--hc),transparent)}
+.hcard:hover{transform:translateY(-3px);box-shadow:var(--sh);border-color:var(--line2)}
+.hcard .top{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
+.hcard .nm{font-weight:700;font-size:15.5px;letter-spacing:-.2px;cursor:pointer}
+.hcard .mt{font-size:11.5px;color:var(--muted);margin-top:2px}
+.hcard .stats{display:flex;gap:14px;margin:12px 0 10px;padding-top:12px;border-top:1px solid var(--line)}
+.hcard .st b{display:block;font-size:17px;font-weight:750;letter-spacing:-.4px;line-height:1.2}
+.hcard .st span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:650}
+.bar{height:6px;border-radius:99px;background:var(--card3);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--hc,var(--accent)),var(--accent2));transition:width .5s var(--ease)}
+.menu-wrap{position:relative;margin-left:auto}
+.menu{position:absolute;right:0;top:calc(100% + 6px);background:var(--card2);border:1px solid var(--line2);border-radius:13px;padding:5px;min-width:158px;box-shadow:var(--sh);z-index:60;animation:pop .16s var(--ease)}
+@keyframes pop{from{opacity:0;transform:translateY(-6px) scale(.96)}to{opacity:1;transform:none}}
+.menu button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:8px 10px;border-radius:9px;font-size:13.5px;font-weight:550;color:var(--text2)}
+.menu button:hover{background:var(--card3);color:var(--text)}
+.menu button.d{color:var(--bad)}
+.menu button svg{width:16px;height:16px}
+.menu hr{border:none;border-top:1px solid var(--line);margin:4px 6px}
+
+/* ================= TASKS ================= */
+.tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:4px;margin-bottom:16px;overflow-x:auto}
+.tabs button{padding:7px 14px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--muted);transition:.16s;white-space:nowrap}
+.tabs button:hover{color:var(--text)}
+.tabs button.on{background:var(--card3);color:var(--text);box-shadow:var(--sh2)}
+.tabs button .n{opacity:.65;font-size:12px;margin-left:4px}
+.addrow{display:flex;gap:9px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:8px 8px 8px 14px;margin-bottom:14px;transition:.18s;box-shadow:var(--sh2)}
+.addrow:focus-within{border-color:rgba(var(--accentRGB),.5);box-shadow:0 0 0 3px rgba(var(--accentRGB),.13)}
+.addrow input[type=text]{flex:1;background:none;border:none;outline:none;font-size:14.5px;min-width:0}
+.addrow input::placeholder{color:var(--muted)}
+.trow{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:var(--r2);background:var(--card);border:1px solid var(--line);transition:.18s var(--ease);margin-bottom:8px}
+.trow:hover{border-color:var(--line2);transform:translateX(2px)}
+.trow.done{opacity:.55}
+.trow.done .tt{text-decoration:line-through;color:var(--muted)}
+.cb{width:21px;height:21px;flex:0 0 21px;border-radius:7px;border:2px solid var(--line2);display:grid;place-items:center;transition:.18s var(--ease)}
+.cb svg{width:13px;height:13px;color:#fff;opacity:0;transform:scale(.4);transition:.18s var(--ease)}
+.cb:hover{border-color:var(--accent);transform:scale(1.1)}
+.cb.on{background:var(--good);border-color:var(--good)}
+.cb.on svg{opacity:1;transform:scale(1)}
+.tt{font-size:14.5px;font-weight:550;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.pill{font-size:11px;font-weight:650;padding:2.5px 8px;border-radius:99px;white-space:nowrap;border:1px solid transparent}
+.pill.p1{background:rgba(255,92,122,.15);color:#ff8ca2;border-color:rgba(255,92,122,.25)}
+.pill.p2{background:rgba(255,176,32,.15);color:#ffc862;border-color:rgba(255,176,32,.25)}
+.pill.p3{background:rgba(77,166,255,.14);color:#7cc0ff;border-color:rgba(77,166,255,.24)}
+.pill.tag{background:var(--card3);color:var(--text2)}
+.pill.due{background:var(--card3);color:var(--text2)}
+.pill.due.over{background:rgba(255,92,122,.16);color:#ff8ca2}
+.pill.due.today{background:rgba(51,214,159,.15);color:#5ee3b6}
+html[data-theme="light"] .pill.p1{color:#c92a4e}
+html[data-theme="light"] .pill.p2{color:#a06400}
+html[data-theme="light"] .pill.p3{color:#0b62b8}
+html[data-theme="light"] .pill.due.over{color:#c92a4e}
+html[data-theme="light"] .pill.due.today{color:#0d8a63}
+.daygroup{margin-bottom:18px}
+.daygroup h3{font-size:12.5px;font-weight:700;color:var(--muted);margin:0 0 9px 3px;text-transform:uppercase;letter-spacing:.7px}
+
+/* ================= STATS ================= */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:13px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:16px;position:relative;overflow:hidden;box-shadow:var(--sh2)}
+.tile .ic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;margin-bottom:11px;font-size:16px}
+.tile b{font-size:26px;font-weight:750;letter-spacing:-1px;display:block;line-height:1.1}
+.tile span{font-size:12px;color:var(--muted);font-weight:600}
+.tile .tr{position:absolute;top:14px;right:14px;font-size:11px;font-weight:700;padding:2px 7px;border-radius:99px}
+.tr.up{background:rgba(51,214,159,.15);color:#5ee3b6}
+.tr.dn{background:rgba(255,92,122,.15);color:#ff8ca2}
+.hm{display:flex;gap:3px;overflow-x:auto;padding:4px 0 8px}
+.hm .col{display:flex;flex-direction:column;gap:3px}
+.hm .cell{width:13px;height:13px;border-radius:3.5px;background:var(--card3);transition:.15s;cursor:default}
+.hm .cell:hover{outline:1.5px solid var(--line2);transform:scale(1.2)}
+.hm .cell.o{outline:1.5px solid var(--accent)}
+.hmlegend{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);justify-content:flex-end;margin-top:2px}
+.hmlegend i{width:12px;height:12px;border-radius:3.5px;display:block}
+.hmdays{display:flex;flex-direction:column;gap:3px;font-size:9.5px;color:var(--muted);margin-right:5px;padding-top:0}
+.hmdays span{height:13px;line-height:13px}
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.lb{display:flex;align-items:center;gap:11px;margin-bottom:11px}
+.lb .n{width:132px;flex:0 0 132px;font-size:13.3px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:7px}
+.lb .b{flex:1}
+.lb .p{width:44px;text-align:right;font-size:12.5px;font-weight:700;color:var(--text2)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* ================= FORMS ================= */
+.field{margin-bottom:15px}
+.field label{display:block;font-size:12.5px;font-weight:650;color:var(--text2);margin-bottom:6px;letter-spacing:.1px}
+.inp{
+  width:100%;padding:11px 13px;border-radius:12px;background:var(--card2);
+  border:1px solid var(--line);outline:none;font-size:14.5px;transition:.16s;
+}
+.inp:focus{border-color:rgba(var(--accentRGB),.55);box-shadow:0 0 0 3px rgba(var(--accentRGB),.13);background:var(--card)}
+textarea.inp{resize:vertical;min-height:96px;line-height:1.6;font-family:inherit}
+select.inp{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237D879C' stroke-width='2.4' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 12px center;background-size:16px;padding-right:36px}
+.row{display:flex;gap:11px}
+.row>*{flex:1;min-width:0}
+.picker{display:flex;gap:7px;flex-wrap:wrap}
+.picker button{
+  width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:18px;
+  background:var(--card2);border:1px solid var(--line);transition:.14s var(--ease);
+}
+.picker button:hover{transform:scale(1.1);border-color:var(--line2)}
+.picker button.on{border-color:var(--accent);background:rgba(var(--accentRGB),.16);box-shadow:0 0 0 2px rgba(var(--accentRGB),.2)}
+.swatch{width:30px;height:30px;border-radius:50%;border:2px solid transparent;transition:.14s var(--ease);position:relative}
+.swatch:hover{transform:scale(1.14)}
+.swatch.on{box-shadow:0 0 0 2.5px var(--card),0 0 0 4.5px currentColor}
+.days{display:flex;gap:6px}
+.days button{flex:1;padding:9px 0;border-radius:10px;background:var(--card2);border:1px solid var(--line);font-size:12.5px;font-weight:650;color:var(--text2);transition:.14s}
+.days button.on{background:rgba(var(--accentRGB),.18);border-color:var(--accent);color:var(--text)}
+.seg{display:flex;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;padding:8px 10px;border-radius:9px;font-size:13.2px;font-weight:600;color:var(--muted);transition:.16s}
+.seg button.on{background:var(--card3);color:var(--text);box-shadow:var(--sh2)}
+.switch{width:44px;height:25px;border-radius:99px;background:var(--card3);position:relative;transition:.22s var(--ease);flex:0 0 44px;border:1px solid var(--line)}
+.switch::after{content:"";position:absolute;top:2.5px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--muted);transition:.22s var(--ease)}
+.switch.on{background:var(--accent);border-color:transparent}
+.switch.on::after{transform:translateX(19px);background:#fff}
+.srow{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--line)}
+.srow:last-child{border-bottom:none}
+.srow .t{flex:1;min-width:0}
+.srow .t b{font-size:14px;font-weight:600;display:block}
+.srow .t span{font-size:12.3px;color:var(--muted);display:block;margin-top:1px}
+
+/* ================= MODAL ================= */
+.ov{position:fixed;inset:0;background:rgba(5,7,12,.66);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;animation:fade .18s ease}
+.modal{
+  background:var(--bg2);border:1px solid var(--line2);border-radius:24px;width:100%;max-width:520px;
+  max-height:88vh;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,.55);animation:up .28s var(--ease);
+}
+@keyframes up{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:none}}
+.modal.wide{max-width:660px}
+.mh{display:flex;align-items:center;gap:12px;padding:19px 22px;border-bottom:1px solid var(--line)}
+.mh h3{margin:0;font-size:17.5px;font-weight:700;letter-spacing:-.3px;flex:1}
+.mb{padding:20px 22px;overflow-y:auto;flex:1}
+.mf{display:flex;gap:10px;padding:16px 22px;border-top:1px solid var(--line)}
+.mf .btn{flex:1}
+.x{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;color:var(--muted);transition:.15s}
+.x:hover{background:var(--card2);color:var(--text)}
+.x svg{width:18px;height:18px}
+
+/* ================= MISC ================= */
+#toast{position:fixed;bottom:calc(24px + var(--sab));left:50%;transform:translateX(-50%);z-index:400;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{
+  background:var(--card2);border:1px solid var(--line2);border-radius:14px;padding:11px 18px;
+  font-size:14px;font-weight:600;box-shadow:var(--sh);display:flex;align-items:center;gap:9px;animation:up .26s var(--ease);
+}
+.toast.ok{border-color:rgba(51,214,159,.4)}
+.toast.err{border-color:rgba(255,92,122,.4)}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:500}
+.fab{display:none}
+.tabbar{display:none}
+.moods{display:flex;gap:8px;flex-wrap:wrap}
+.moods button{width:46px;height:46px;border-radius:14px;font-size:23px;background:var(--card2);border:1px solid var(--line);transition:.16s var(--ease);display:grid;place-items:center}
+.moods button:hover{transform:translateY(-3px)}
+.moods button.on{background:rgba(var(--accentRGB),.17);border-color:var(--accent);transform:translateY(-3px)}
+.jentry{padding:14px;border-radius:var(--r2);background:var(--card);border:1px solid var(--line);margin-bottom:10px;transition:.16s}
+.jentry:hover{border-color:var(--line2)}
+.jentry .jh{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.jentry .jh b{font-size:13.5px}
+.jentry .jh span{font-size:11.5px;color:var(--muted)}
+.jentry p{margin:0;font-size:13.8px;color:var(--text2);white-space:pre-wrap;line-height:1.62}
+.timer{display:flex;flex-direction:column;align-items:center;gap:18px;padding:12px 0}
+.timer .ring{width:236px;height:236px;flex:0 0 236px}
+.timer .ring svg{width:236px;height:236px}
+.timer .rt b{font-size:47px;font-weight:250;letter-spacing:-2px;font-variant-numeric:tabular-nums}
+.timer .rt span{font-size:11px;margin-top:4px}
+.presets{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.presets button{padding:8px 15px;border-radius:11px;background:var(--card2);border:1px solid var(--line);font-size:13.5px;font-weight:600;color:var(--text2);transition:.16s}
+.presets button.on{background:rgba(var(--accentRGB),.17);border-color:var(--accent);color:var(--text)}
+kbd{background:var(--card3);border:1px solid var(--line2);border-bottom-width:2px;border-radius:6px;padding:1.5px 6px;font-size:11.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600}
+.mini{font-size:12.5px;color:var(--muted)}
+a{color:var(--accent2)}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width:900px){
+  .sidebar{display:none}
+  .content{padding:16px 15px calc(96px + var(--sab))}
+  .topbar{padding:10px 15px;padding-top:calc(10px + var(--sat))}
+  .topbar h1{font-size:17.5px}
+  .hero{flex-direction:column;align-items:stretch;gap:18px;padding:20px;text-align:center}
+  .hero .ring{margin:0 auto}
+  .hero .hi h2{font-size:21px}
+  .chips{justify-content:center}
+  .two{grid-template-columns:1fr}
+  .hcards{grid-template-columns:1fr}
+  .lb .n{width:96px;flex:0 0 96px;font-size:12.5px}
+  .modal{max-width:100%;max-height:92dvh;border-radius:24px 24px 0 0;padding-bottom:var(--sab)}
+  .ov{padding:0;align-items:flex-end}
+  @keyframes up{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+  .tabbar{
+    display:flex;position:fixed;left:0;right:0;bottom:0;z-index:100;
+    background:rgba(10,12,17,.86);backdrop-filter:blur(20px);border-top:1px solid var(--line);
+    padding:7px 6px calc(7px + var(--sab));
+  }
+  html[data-theme="light"] .tabbar{background:rgba(255,255,255,.9)}
+  .tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;color:var(--muted);font-size:10.5px;font-weight:600;border-radius:12px;transition:.16s;position:relative}
+  .tabbar button svg{width:21px;height:21px}
+  .tabbar button.on{color:var(--accent)}
+  .tabbar button .badge{position:absolute;top:2px;right:50%;margin-right:-20px;background:var(--bad);color:#fff;font-size:9.5px;font-weight:700;padding:0 5px;border-radius:99px;line-height:15px;min-width:16px}
+  .fab{
+    display:grid;place-items:center;position:fixed;right:16px;bottom:calc(76px + var(--sab));z-index:99;
+    width:54px;height:54px;border-radius:18px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    box-shadow:0 10px 26px rgba(var(--accentRGB),.5);color:#fff;transition:.18s var(--ease);
+  }
+  .fab:active{transform:scale(.92)}
+  .fab svg{width:25px;height:25px}
+  .hm .cell{width:11px;height:11px}
+}
+@media (max-width:400px){
+  .tile b{font-size:22px}
+  .hero .ring{flex:0 0 108px;width:108px;height:108px}
+  .hero .ring svg{width:108px;height:108px}
+}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+      <div><b>Momentum</b><small>Habits · Tasks · Focus</small></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sidefoot" id="sidefoot"></div>
+  </aside>
+  <main>
+    <div class="topbar">
+      <div style="min-width:0"><h1 id="tbTitle">Today</h1><div class="sub" id="tbSub"></div></div>
+      <div class="sp"></div>
+      <div id="tbActions" style="display:flex;gap:8px;align-items:center"></div>
+    </div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+<button class="fab" id="fab" aria-label="Add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<nav class="tabbar" id="tabbar"></nav>
+<div id="modalHost"></div>
+<div id="toast"></div>
+<canvas id="confetti"></canvas>
+
+<script>
+"use strict";
+/* =========================================================
+   MOMENTUM — offline habit + task tracker (single file)
+   All data lives in this browser's localStorage. No network.
+   ========================================================= */
+/* older phone browsers */
+if(typeof structuredClone !== 'function'){
+  window.structuredClone = o => JSON.parse(JSON.stringify(o));
+}
+
+/* ---------- icons ---------- */
+const P = {
+  today:'<rect x="3" y="4.5" width="18" height="17" rx="3.5"/><path d="M8 2.5v4M16 2.5v4M3 10h18M9 15.5l2 2 4-4"/>',
+  habits:'<path d="M12 2.5l2.9 6.1 6.6.9-4.8 4.7 1.2 6.7-5.9-3.2-5.9 3.2 1.2-6.7L2.5 9.5l6.6-.9z"/>',
+  tasks:'<path d="M9 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3"/><rect x="9" y="3" width="6" height="4" rx="1.5"/><path d="M8.5 13l2.2 2.2 4.5-4.5"/>',
+  stats:'<path d="M3 21h18M7 21V11M12 21V4M17 21v-7"/>',
+  journal:'<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H19v3H6.5A2.5 2.5 0 0 1 4 20.5z"/><path d="M8.5 8h6M8.5 12h4"/>',
+  focus:'<circle cx="12" cy="13.5" r="8"/><path d="M12 9.5v4.5l2.8 1.7M9 2h6"/>',
+  settings:'<circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-2.87 1.2V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 3 15a1.7 1.7 0 0 0-1.55-1H1.3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 3 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 7 4.6h.09A1.7 1.7 0 0 0 8.7 3.05V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.02 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v.09a1.7 1.7 0 0 0 1.55 1.02H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.02z"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  x:'<path d="M18 6L6 18M6 6l12 12"/>',
+  check:'<path d="M20 6L9 17l-5-5"/>',
+  edit:'<path d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><path d="M18.4 2.6a2 2 0 0 1 2.8 2.8L12 14.6l-3.8.8.8-3.8z"/>',
+  trash:'<path d="M3 6h18M8 6V4a1.5 1.5 0 0 1 1.5-1.5h5A1.5 1.5 0 0 1 16 4v2M19 6l-.8 13a2 2 0 0 1-2 1.9H7.8a2 2 0 0 1-2-1.9L5 6"/><path d="M10 11v6M14 11v6"/>',
+  archive:'<rect x="2.5" y="3.5" width="19" height="5" rx="1.5"/><path d="M4.5 8.5V19a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V8.5M10 12.5h4"/>',
+  down:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+  up:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>',
+  more:'<circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/>',
+  left:'<path d="M15 18l-6-6 6-6"/>',
+  right:'<path d="M9 18l6-6-6-6"/>',
+  bell:'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
+  copy:'<rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5.5 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v.5"/>',
+  play:'<path d="M6 4l14 8-14 8z" fill="currentColor" stroke-linejoin="round"/>',
+  pause:'<rect x="6.5" y="4.5" width="4" height="15" rx="1.4" fill="currentColor"/><rect x="13.5" y="4.5" width="4" height="15" rx="1.4" fill="currentColor"/>',
+  reset:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/>',
+  target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.3"/>',
+  grid:'<rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/>'
+};
+const ic = (n,w) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(w||2)+'" stroke-linecap="round" stroke-linejoin="round">'+(P[n]||'')+'</svg>';
+
+/* ---------- palette ---------- */
+const COLORS = [
+  {id:'violet', hex:'#7C5CFF', rgb:'124,92,255'},
+  {id:'blue',   hex:'#4DA6FF', rgb:'77,166,255'},
+  {id:'cyan',   hex:'#22D3EE', rgb:'34,211,238'},
+  {id:'teal',   hex:'#2DD4BF', rgb:'45,212,191'},
+  {id:'green',  hex:'#33D69F', rgb:'51,214,159'},
+  {id:'lime',   hex:'#A3E635', rgb:'163,230,53'},
+  {id:'amber',  hex:'#FFB020', rgb:'255,176,32'},
+  {id:'orange', hex:'#FF8A3D', rgb:'255,138,61'},
+  {id:'red',    hex:'#FF5C7A', rgb:'255,92,122'},
+  {id:'pink',   hex:'#F472B6', rgb:'244,114,182'},
+  {id:'purple', hex:'#A855F7', rgb:'168,85,247'},
+  {id:'slate',  hex:'#94A3B8', rgb:'148,163,184'}
+];
+const col = id => COLORS.find(c => c.id === id) || COLORS[0];
+const EMOJI = ['✅','💪','🏃','🧘','📚','💧','🌙','☀️','🍎','🥗','💊','🦷','🧹','💰','💻','✍️','🎨','🎸','🧠','📵','🚭','🙏','❤️','🐕','☎️','🛏️','🚿','🥇','🔥','⚡','🌱','🎯'];
+const CATS = ['Health','Fitness','Mind','Work','Study','Home','Money','Social','Creative','Other'];
+
+/* ---------- date utils ---------- */
+const pad = n => String(n).padStart(2,'0');
+const dk = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const pd = k => { const [y,m,d] = k.split('-').map(Number); return new Date(y, m-1, d); };
+const midnight = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const today0 = () => midnight(new Date());
+const TODAY = () => dk(new Date());
+const addD = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+const DAYN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function weekStartOf(d){
+  const ws = S.settings.weekStart|0;
+  const x = midnight(d); const diff = (x.getDay() - ws + 7) % 7;
+  return addD(x, -diff);
+}
+function fmtDay(k){
+  const d = pd(k), t = TODAY();
+  if(k === t) return 'Today';
+  if(k === dk(addD(today0(),-1))) return 'Yesterday';
+  if(k === dk(addD(today0(),1))) return 'Tomorrow';
+  return DAYN[d.getDay()]+', '+MON[d.getMonth()]+' '+d.getDate();
+}
+function fmtLong(d){ return DAYN[d.getDay()]+', '+MON[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear(); }
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp = (n,a,b) => Math.max(a, Math.min(b,n));
+
+/* =========================================================
+   LOCAL STORAGE LAYER
+   Every byte of this app lives in this browser's localStorage.
+   Nothing is ever sent anywhere. This layer makes that safe:
+     · probes storage up-front, falls back to memory if blocked
+     · normalises + migrates whatever it reads back
+     · keeps a rolling daily backup it can self-heal from
+     · survives quota errors and corrupt records
+   ========================================================= */
+const KEY    = 'momentum.v1';         // the data
+const UIKEY  = 'momentum.ui.v1';      // where you were: view, filters, running timer
+const BAKKEY = 'momentum.v1.backup';  // yesterday's known-good copy
+const DEFAULTS = {
+  habits: [], logs: {}, tasks: [], notes: {}, focus: [],
+  settings: { name:'', theme:'dark', accent:'violet', weekStart:1, notify:false, sound:true, confetti:true },
+  meta: { created: Date.now(), v: 1 }
+};
+
+/* Storage handle. If localStorage is blocked (private window, file:// with
+   site-data disabled, quota of zero) we transparently swap in a memory store
+   so the whole app still runs — it just cannot persist, and says so loudly. */
+const DB = (function(){
+  const mem = Object.create(null);
+  const memStore = {
+    ok:false, reason:'',
+    getItem: k => (k in mem ? mem[k] : null),
+    setItem: (k,v) => { mem[k] = String(v); },
+    removeItem: k => { delete mem[k]; },
+    keys: () => Object.keys(mem)
+  };
+  try{
+    if(typeof localStorage === 'undefined' || !localStorage) throw new Error('not available');
+    const probe = '__momentum_probe__';
+    localStorage.setItem(probe, 'ok');
+    if(localStorage.getItem(probe) !== 'ok') throw new Error('write did not read back');
+    localStorage.removeItem(probe);
+    return {
+      ok:true, reason:'',
+      getItem: k => localStorage.getItem(k),
+      setItem: (k,v) => localStorage.setItem(k,v),
+      removeItem: k => localStorage.removeItem(k),
+      keys: () => { try{ return Object.keys(localStorage); }catch(e){ return []; } }
+    };
+  }catch(e){
+    memStore.reason = (e && e.name === 'SecurityError')
+      ? 'the browser is blocking site data here (private window, or third-party/site-data settings)'
+      : ((e && e.message) || 'unavailable');
+    return memStore;
+  }
+})();
+let bootNotice = '';      // shown once after boot if something needed saying
+let storageError = false; // true after a failed write, until one succeeds
+
+/* Repair anything missing or malformed, so an old or hand-edited backup
+   can never crash a render. */
+function normalize(d){
+  const s = Object.assign(structuredClone(DEFAULTS), d || {});
+  s.settings = Object.assign(structuredClone(DEFAULTS.settings), (d && d.settings) || {});
+  s.meta = Object.assign({ created: Date.now(), v: 1 }, (d && d.meta) || {});
+  if(!Array.isArray(s.habits)) s.habits = [];
+  if(!Array.isArray(s.tasks))  s.tasks  = [];
+  if(!Array.isArray(s.focus))  s.focus  = [];
+  if(!s.logs  || typeof s.logs  !== 'object') s.logs  = {};
+  if(!s.notes || typeof s.notes !== 'object') s.notes = {};
+
+  s.habits = s.habits.filter(h => h && h.id && h.name).map(h => {
+    const f = (h.freq && typeof h.freq === 'object') ? h.freq : { t:'daily' };
+    if(!['daily','days','weekly'].includes(f.t)) f.t = 'daily';
+    if(f.t === 'days' && !Array.isArray(f.days)) f.days = [1,2,3,4,5];
+    if(f.t === 'weekly') f.per = clamp(parseInt(f.per) || 3, 1, 7);
+    return Object.assign({ icon:'✅', color:'violet', cat:'Other', type:'check', target:1,
+      unit:'', reminder:'', note:'', created:TODAY(), archived:false }, h,
+      { freq:f, target: Math.max(1, parseInt(h.target) || 1), archived: !!h.archived });
+  });
+  s.tasks = s.tasks.filter(t => t && t.id && t.title).map(t =>
+    Object.assign({ notes:'', due:'', pri:2, tag:'', done:false, doneAt:'', created:TODAY(), sub:[] }, t,
+      { sub: Array.isArray(t.sub) ? t.sub.filter(x => x && typeof x.t === 'string') : [],
+        pri: [1,2,3].includes(t.pri) ? t.pri : 2, done: !!t.done }));
+  s.focus = s.focus.filter(f => f && f.date && f.min > 0);
+  Object.keys(s.logs).forEach(id => {
+    if(!s.habits.some(h => h.id === id)) { delete s.logs[id]; return; }   // orphaned logs
+    const o = s.logs[id];
+    if(!o || typeof o !== 'object'){ delete s.logs[id]; return; }
+    Object.keys(o).forEach(k => { const n = Number(o[k]); if(!(n > 0)) delete o[k]; else o[k] = n; });
+  });
+  Object.keys(s.notes).forEach(k => {
+    const n = s.notes[k];
+    if(!n || typeof n !== 'object' || (!n.text && !n.mood)) delete s.notes[k];
+  });
+  s.settings.weekStart = [0,1,6].includes(s.settings.weekStart) ? s.settings.weekStart : 1;
+  if(!COLORS.some(c => c.id === s.settings.accent)) s.settings.accent = 'violet';
+  if(!['dark','light','system'].includes(s.settings.theme)) s.settings.theme = 'dark';
+  return s;
+}
+
+function load(){
+  if(!DB.ok) bootNotice = 'Running without saved storage — ' + DB.reason + '. Your work stays only until you close this tab, so export a backup before you leave.';
+  const raw = DB.getItem(KEY);
+  if(!raw) return structuredClone(DEFAULTS);
+  try{
+    return normalize(JSON.parse(raw));
+  }catch(e){
+    try{ DB.setItem(KEY + '.corrupt', raw); }catch(_){}          // never throw the damaged copy away
+    const bak = DB.getItem(BAKKEY);
+    if(bak){
+      try{
+        const s = normalize(JSON.parse(bak));
+        bootNotice = 'The main record was unreadable, so Momentum restored your automatic backup from ' +
+          (DB.getItem(BAKKEY + '.date') || 'an earlier day') + '.';
+        return s;
+      }catch(_){}
+    }
+    bootNotice = 'Saved data could not be read and no backup was available. The damaged copy is kept under the key momentum.v1.corrupt if you want to recover it by hand.';
+    return structuredClone(DEFAULTS);
+  }
+}
+
+let S = load();
+let saveTimer = null, lastBackupDay = DB.getItem(BAKKEY + '.date') || '';
+function save(now){
+  clearTimeout(saveTimer);
+  const write = () => {
+    const json = JSON.stringify(S);
+    try{
+      DB.setItem(KEY, json);
+      if(storageError){ storageError = false; toast('Saving again — storage recovered', 'ok'); }
+      if(DB.ok && lastBackupDay !== TODAY()){          // one rolling snapshot per day
+        try{ DB.setItem(BAKKEY, json); DB.setItem(BAKKEY + '.date', TODAY()); lastBackupDay = TODAY(); }catch(_){}
+      }
+    }catch(e){
+      try{                                             // reclaim the backup slot and retry once
+        DB.removeItem(BAKKEY); DB.removeItem(KEY + '.corrupt');
+        DB.setItem(KEY, json);
+        lastBackupDay = '';
+      }catch(_){
+        if(!storageError) toast('Storage is full — export a backup and clear old data', 'err');
+        storageError = true;
+      }
+    }
+  };
+  if(now) write(); else saveTimer = setTimeout(write, 220);
+}
+/* flush any pending debounced write immediately */
+function flush(){ if(saveTimer){ clearTimeout(saveTimer); saveTimer = null; save(true); } }
+function storageBytes(){
+  let n = 0;
+  try{ [KEY, UIKEY, BAKKEY].forEach(k => { const v = DB.getItem(k); if(v) n += v.length; }); }
+  catch(e){ try{ n = JSON.stringify(S).length; }catch(_){} }
+  return n;
+}
+
+/* ---------- habit maths ---------- */
+const goalOf = h => h.type === 'count' ? Math.max(1, h.target||1) : 1;
+const getLog = (h,k) => (S.logs[h.id] && S.logs[h.id][k]) || 0;
+function setLog(h,k,v){
+  if(!S.logs[h.id]) S.logs[h.id] = {};
+  if(v > 0) S.logs[h.id][k] = v; else delete S.logs[h.id][k];
+  save();
+}
+const isDone = (h,k) => getLog(h,k) >= goalOf(h);
+const ratioOf = (h,k) => clamp(getLog(h,k)/goalOf(h), 0, 1);
+
+function scheduled(h, d){
+  const f = h.freq || {t:'daily'};
+  if(midnight(d) < pd(h.created)) return false;
+  if(f.t === 'days') return (f.days||[]).includes(d.getDay());
+  return true; // daily + weekly-target are available every day
+}
+function weekDone(h, anyDate){
+  const ws = weekStartOf(anyDate); let n = 0;
+  for(let i=0;i<7;i++){ if(isDone(h, dk(addD(ws,i)))) n++; }
+  return n;
+}
+/* is this habit still expected today? */
+function dueToday(h){
+  const d = new Date();
+  if(h.archived || !scheduled(h,d)) return false;
+  const f = h.freq || {t:'daily'};
+  if(f.t === 'weekly' && !isDone(h, TODAY())){
+    return weekDone(h,d) < (f.per||3);
+  }
+  return true;
+}
+function freqLabel(h){
+  const f = h.freq || {t:'daily'};
+  if(f.t === 'daily') return 'Every day';
+  if(f.t === 'weekly') return (f.per||3)+'× per week';
+  const ds = (f.days||[]).slice().sort();
+  if(ds.length === 7) return 'Every day';
+  if(ds.length === 5 && ds.join() === '1,2,3,4,5') return 'Weekdays';
+  if(ds.length === 2 && ds.join() === '0,6') return 'Weekends';
+  return ds.map(i => DAYN[i]).join(' · ') || 'No days set';
+}
+function streaks(h){
+  const f = h.freq || {t:'daily'};
+  const created = pd(h.created);
+  let cur = 0, best = 0, run = 0;
+  if(f.t === 'weekly'){
+    const per = f.per||3;
+    let w = weekStartOf(created), now = today0();
+    const list = [];
+    while(w <= now){ list.push(new Date(w)); w = addD(w,7); }
+    list.forEach((ws,i) => {
+      const ok = weekDone(h, ws) >= per;
+      const last = i === list.length-1;
+      if(ok){ run++; best = Math.max(best, run); }
+      else if(!last) run = 0;
+      else return;
+    });
+    cur = run;
+  } else {
+    let d = today0();
+    if(scheduled(h,d) && !isDone(h, dk(d))) d = addD(d,-1);
+    while(d >= created){
+      if(scheduled(h,d)){ if(isDone(h, dk(d))) cur++; else break; }
+      d = addD(d,-1);
+    }
+    let x = new Date(created), n = today0();
+    while(x <= n){
+      if(scheduled(h,x)){ if(isDone(h, dk(x))){ run++; best = Math.max(best, run); } else run = 0; }
+      x = addD(x,1);
+    }
+    best = Math.max(best, cur);
+  }
+  return { cur, best };
+}
+function rate(h, days){
+  let due = 0, hit = 0, d = today0();
+  for(let i=0;i<days;i++){
+    if(scheduled(h,d)){ due++; if(isDone(h, dk(d))) hit++; }
+    d = addD(d,-1);
+  }
+  return due ? hit/due : 0;
+}
+const totalDone = h => Object.values(S.logs[h.id]||{}).filter(v => v >= goalOf(h)).length;
+const activeHabits = () => S.habits.filter(h => !h.archived);
+function dayScore(k){
+  const d = pd(k);
+  const list = S.habits.filter(h => !h.archived && scheduled(h,d));
+  if(!list.length) return null;
+  let s = 0; list.forEach(h => s += ratioOf(h,k));
+  return s/list.length;
+}
+function perfectStreak(){
+  let n = 0, d = today0();
+  if(dayScore(dk(d)) !== 1) d = addD(d,-1);
+  while(true){
+    const s = dayScore(dk(d));
+    if(s === 1) n++; else break;
+    d = addD(d,-1);
+    if(n > 3000) break;
+  }
+  return n;
+}
+
+/* =========================================================
+   SHELL / ROUTER
+   ========================================================= */
+const VIEWS = [
+  {id:'today',    name:'Today',    icon:'today',    grp:'Daily'},
+  {id:'habits',   name:'Habits',   icon:'habits',   grp:'Daily'},
+  {id:'tasks',    name:'Tasks',    icon:'tasks',    grp:'Daily'},
+  {id:'stats',    name:'Insights', icon:'stats',    grp:'Review'},
+  {id:'journal',  name:'Journal',  icon:'journal',  grp:'Review'},
+  {id:'focus',    name:'Focus',    icon:'focus',    grp:'Review'},
+  {id:'settings', name:'Settings', icon:'settings', grp:'System'}
+];
+let V = 'today';
+const ui = { taskFilter:'today', habitCat:'all', showArchived:false, jDate:TODAY(), statRange:30 };
+
+/* Where you were, kept locally too — so a reload drops you back exactly
+   where you left off, running focus timer included. */
+let sessTimer = null;
+function saveSession(now){
+  clearTimeout(sessTimer);
+  const write = () => {
+    try{
+      DB.setItem(UIKEY, JSON.stringify({
+        view: V, taskFilter: ui.taskFilter, habitCat: ui.habitCat, showArchived: ui.showArchived,
+        statRange: ui.statRange, jDate: ui.jDate, savedAt: Date.now(),
+        timer: { running:T.running, endAt:T.endAt, left:T.left, total:T.total,
+                 preset:T.preset, habit:T.habit, br:T.break }
+      }));
+    }catch(e){}
+  };
+  if(now) write(); else sessTimer = setTimeout(write, 400);
+}
+function restoreSession(){
+  let d = null;
+  try{ d = JSON.parse(DB.getItem(UIKEY) || 'null'); }catch(e){}
+  if(!d) return;
+  if(VIEWS.some(x => x.id === d.view)) V = d.view;
+  if(['today','upcoming','someday','all','done'].includes(d.taskFilter)) ui.taskFilter = d.taskFilter;
+  if(typeof d.habitCat === 'string') ui.habitCat = d.habitCat;
+  ui.showArchived = !!d.showArchived;
+  if([7,30,90].includes(d.statRange)) ui.statRange = d.statRange;
+  ui.jDate = (d.jDate && /^\d{4}-\d{2}-\d{2}$/.test(d.jDate) && d.jDate <= TODAY()) ? d.jDate : TODAY();
+
+  const t = d.timer;
+  if(t && t.total){
+    T.total = t.total; T.preset = t.preset || 25; T.habit = t.habit || ''; T.break = !!t.br;
+    if(t.running && t.endAt){
+      const left = Math.round((t.endAt - Date.now())/1000);
+      if(left > 0){                       // still ticking — pick it right back up
+        T.left = left; T.endAt = t.endAt; T.running = true;
+        clearInterval(T.tick); T.tick = setInterval(tickTimer, 250);
+      } else {                            // it ran out while the app was closed
+        T.left = 0; T.running = false; T.finishedWhileAway = true;
+      }
+    } else {
+      T.left = clamp(t.left || t.total, 0, t.total);
+    }
+  }
+}
+const $ = s => document.querySelector(s);
+const el = (id) => document.getElementById(id);
+
+function go(v){ V = v; resetScroll = true; render(); }
+
+function renderNav(){
+  let h = '', last = '';
+  VIEWS.forEach(v => {
+    if(v.grp !== last){ h += '<div class="lbl">'+v.grp+'</div>'; last = v.grp; }
+    let badge = '';
+    if(v.id === 'tasks'){ const n = openTasksToday(); if(n) badge = '<span class="badge">'+n+'</span>'; }
+    if(v.id === 'today'){ const n = todayList().filter(x => !isDone(x, TODAY())).length; if(n) badge = '<span class="badge">'+n+'</span>'; }
+    h += '<button data-act="go" data-v="'+v.id+'" class="'+(V===v.id?'on':'')+'">'+ic(v.icon)+'<span>'+v.name+'</span>'+badge+'</button>';
+  });
+  el('nav').innerHTML = h;
+
+  const ps = perfectStreak();
+  el('sidefoot').innerHTML =
+    '<div class="streakbox"><div class="f">'+(ps>0?'🔥':'🌱')+'</div><div><b>'+ps+' day'+(ps===1?'':'s')+'</b><span>'+(ps>0?'Perfect-day streak':'Start your streak today')+'</span></div></div>';
+
+  const tabs = ['today','habits','tasks','stats'];
+  let t = '';
+  tabs.forEach(id => {
+    const v = VIEWS.find(x => x.id === id);
+    let badge = '';
+    if(id === 'tasks'){ const n = openTasksToday(); if(n) badge = '<span class="badge">'+n+'</span>'; }
+    t += '<button data-act="go" data-v="'+id+'" class="'+(V===id?'on':'')+'">'+ic(v.icon)+badge+'<span>'+v.name+'</span></button>';
+  });
+  t += '<button data-act="more" class="'+(['journal','focus','settings'].includes(V)?'on':'')+'">'+ic('more')+'<span>More</span></button>';
+  el('tabbar').innerHTML = t;
+}
+
+function render(){
+  renderNav();
+  const v = VIEWS.find(x => x.id === V);
+  el('tbTitle').textContent = v.name;
+  const parts = {
+    today:    fmtLong(new Date()),
+    habits:   activeHabits().length + ' active · ' + S.habits.filter(h=>h.archived).length + ' archived',
+    tasks:    S.tasks.filter(t=>!t.done).length + ' open · ' + S.tasks.filter(t=>t.done).length + ' done',
+    stats:    'Your progress at a glance',
+    journal:  'Reflect on your day',
+    focus:    'Deep work sessions',
+    settings: 'Everything stays on this device'
+  };
+  el('tbSub').textContent = parts[V] || '';
+  el('tbActions').innerHTML = topActions();
+  const body = {
+    today: viewToday, habits: viewHabits, tasks: viewTasks,
+    stats: viewStats, journal: viewJournal, focus: viewFocus, settings: viewSettings
+  }[V]();
+  const c = el('content'), sc = c.scrollTop;
+  c.innerHTML = '<div class="wrap view">' + storageBanner() + body + '</div>';
+  c.scrollTop = resetScroll ? 0 : sc;
+  resetScroll = false;
+  if(V === 'focus') paintTimer();
+  saveSession();
+}
+function topActions(){
+  if(V === 'habits') return '<button class="btn pri" data-act="newHabit">'+ic('plus')+'<span>New habit</span></button>';
+  if(V === 'tasks')  return '<button class="btn pri" data-act="newTask">'+ic('plus')+'<span>New task</span></button>';
+  if(V === 'today')  return '<button class="btn" data-act="newHabit">'+ic('plus')+'<span>Habit</span></button>';
+  if(V === 'stats')  return '<button class="btn" data-act="exportData">'+ic('down')+'<span>Backup</span></button>';
+  return '';
+}
+
+/* ---------- shared bits ---------- */
+function storageBanner(){
+  let h = '';
+  if(!DB.ok || storageError){
+    const full = storageError;
+    h += '<div class="banner"><div class="bi">'+(full?'💾':'⚠️')+'</div><div style="flex:1;min-width:0">'
+      + '<b>'+(full ? 'Storage is full — recent changes may not be saved' : 'Nothing is being saved on this device')+'</b>'
+      + '<span>'+(full
+          ? 'Export a backup now, then clear completed tasks or delete habits you no longer track to free space.'
+          : esc(DB.reason.charAt(0).toUpperCase() + DB.reason.slice(1)) + '. Momentum still works, but everything disappears when you close this tab.')
+      + '</span></div>'
+      + '<button class="btn sm" data-act="exportData">'+ic('down')+'Export</button></div>';
+  }
+  /* Something happened to your data on the way in — too important for a toast
+     you might blink and miss, so it stays until dismissed. */
+  if(bootNotice){
+    h += '<div class="banner" style="background:linear-gradient(135deg,rgba(77,166,255,.14),rgba(124,92,255,.08));border-color:rgba(77,166,255,.3)">'
+      + '<div class="bi">💡</div><div style="flex:1;min-width:0"><b>About your saved data</b>'
+      + '<span>'+esc(bootNotice)+'</span></div>'
+      + '<button class="x" data-act="dismissNotice">'+ic('x')+'</button></div>';
+  }
+  return h;
+}
+function ring(pctv, size, stroke, color){
+  const r = (size - stroke)/2, C = 2*Math.PI*r, off = C*(1 - clamp(pctv,0,1));
+  return '<svg viewBox="0 0 '+size+' '+size+'">'
+    + '<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="var(--card3)" stroke-width="'+stroke+'"/>'
+    + '<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="'+(color||'url(#g1)')+'" stroke-width="'+stroke+'" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" style="transition:stroke-dashoffset .7s cubic-bezier(.22,1,.36,1)"/>'
+    + '<defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent2)"/></linearGradient></defs></svg>';
+}
+function habitStyle(h){ const c = col(h.color); return '--hc:'+c.hex+';--hcs:rgba('+c.rgb+',.14);--hcb:rgba('+c.rgb+',.26)'; }
+function weekStrip(h){
+  let s = '<div class="week">';
+  const start = weekStartOf(new Date()), t = TODAY();
+  for(let i=0;i<7;i++){
+    const d = addD(start,i), k = dk(d);
+    const av = scheduled(h,d), r = ratioOf(h,k);
+    const cls = !av ? 'na' : (r >= 1 ? 'f' : (r > 0 ? 'p' : ''));
+    s += '<i class="'+cls+(k===t?' t':'')+'" title="'+DAYN[d.getDay()]+' '+(Math.round(r*100))+'%"></i>';
+  }
+  return s + '</div>';
+}
+function habitRow(h, k){
+  const done = isDone(h,k), v = getLog(h,k), g = goalOf(h), st = streaks(h);
+  const right = h.type === 'count'
+    ? '<div class="counter"><button data-act="dec" data-id="'+h.id+'" data-k="'+k+'" aria-label="minus">&minus;</button>'
+      + '<div class="v">'+v+'<small>/'+g+(h.unit?' '+esc(h.unit):'')+'</small></div>'
+      + '<button data-act="inc" data-id="'+h.id+'" data-k="'+k+'" aria-label="plus">+</button></div>'
+    : '<button class="tick '+(done?'on':'')+'" data-act="toggle" data-id="'+h.id+'" data-k="'+k+'" aria-label="Toggle '+esc(h.name)+'">'+ic('check',3.2)+'</button>';
+  const meta = [];
+  meta.push(freqLabel(h));
+  if(st.cur > 0) meta.push('🔥 '+st.cur+' day'+(st.cur===1?'':'s'));
+  if((h.freq||{}).t === 'weekly') meta.push(weekDone(h,new Date())+'/'+((h.freq.per)||3)+' this week');
+  return '<div class="hrow '+(done?'done':'')+'" style="'+habitStyle(h)+'">'
+    + '<div class="hico" data-act="openHabit" data-id="'+h.id+'">'+esc(h.icon||'✅')+'</div>'
+    + '<div class="hmid" data-act="openHabit" data-id="'+h.id+'"><div class="hn">'+esc(h.name)+'</div>'
+    + '<div class="hs">'+meta.map((m,i) => (i?'<span class="dot"></span>':'')+'<span>'+m+'</span>').join('')+'</div></div>'
+    + right + '</div>';
+}
+const todayList = () => S.habits.filter(h => !h.archived && scheduled(h,new Date()) && (dueToday(h) || isDone(h,TODAY())));
+const openTasksToday = () => S.tasks.filter(t => !t.done && t.due && t.due <= TODAY()).length;
+
+/* =========================================================
+   VIEW: TODAY
+   ========================================================= */
+function viewToday(){
+  const k = TODAY(), hrs = new Date().getHours();
+  const greet = hrs < 5 ? 'Still up' : hrs < 12 ? 'Good morning' : hrs < 17 ? 'Good afternoon' : hrs < 22 ? 'Good evening' : 'Winding down';
+  const nm = S.settings.name ? ', ' + esc(S.settings.name) : '';
+  const list = todayList().slice().sort((a,b) => (isDone(a,k)?1:0) - (isDone(b,k)?1:0));
+  const doneN = list.filter(h => isDone(h,k)).length;
+  const p = list.length ? doneN/list.length : 0;
+  const pctv = Math.round(p*100);
+  const ps = perfectStreak();
+  const tasksToday = S.tasks.filter(t => !t.done && t.due && t.due <= k);
+  const fmin = S.focus.filter(f => f.date === k).reduce((a,b) => a + b.min, 0);
+  const line = !list.length ? 'No habits scheduled — add one to get moving.'
+    : p === 1 ? 'Every habit done. That is a perfect day. 🎉'
+    : p >= .5 ? 'Strong progress — ' + (list.length-doneN) + ' left to close out the day.'
+    : 'You have ' + (list.length-doneN) + ' habit' + (list.length-doneN===1?'':'s') + ' waiting. Start with the easiest.';
+
+  let h = '<div class="hero">'
+    + '<div class="ring">' + ring(p,126,11) + '<div class="rt"><b>'+pctv+'%</b><span>Today</span></div></div>'
+    + '<div class="hi"><h2>'+greet+nm+'</h2><p>'+line+'</p><div class="chips">'
+    + '<span class="chip">✅ <b>'+doneN+'/'+list.length+'</b> habits</span>'
+    + '<span class="chip">'+(ps>0?'🔥':'🌱')+' <b>'+ps+'</b> perfect-day streak</span>'
+    + '<span class="chip">📋 <b>'+tasksToday.length+'</b> tasks due</span>'
+    + (fmin ? '<span class="chip">⏱ <b>'+fmin+'</b> min focused</span>' : '')
+    + '</div></div></div>';
+
+  h += '<div class="sect"><div class="sect-h"><h2>Habits</h2><span class="c">'+doneN+' of '+list.length+'</span><div class="sp"></div>'
+     + '<button class="btn sm ghost" data-act="go" data-v="habits">Manage</button></div>';
+  if(!list.length){
+    h += '<div class="card empty"><div class="e">🎯</div><h3>No habits for today</h3><p>Create your first habit and Momentum will track streaks, rates and trends automatically.</p>'
+       + '<button class="btn pri" data-act="newHabit">'+ic('plus')+'Create a habit</button>'
+       + ' <button class="btn" data-act="seed">Load starter pack</button></div>';
+  } else {
+    h += '<div class="grid">' + list.map(x => habitRow(x,k)).join('') + '</div>';
+  }
+  h += '</div>';
+
+  const doneToday = S.tasks.filter(t => t.done && t.doneAt === k);
+  h += '<div class="sect"><div class="sect-h"><h2>Tasks</h2><span class="c">'+tasksToday.length+' due</span><div class="sp"></div>'
+     + '<button class="btn sm ghost" data-act="go" data-v="tasks">All tasks</button></div>'
+     + quickAdd();
+  if(!tasksToday.length && !doneToday.length){
+    h += '<div class="card empty" style="padding:26px"><div class="e">🗒️</div><h3>Nothing due today</h3><p>Add a task above — it will show up here on its due date.</p></div>';
+  } else {
+    h += '<div>' + tasksToday.map(taskRow).join('') + doneToday.map(taskRow).join('') + '</div>';
+  }
+  h += '</div>';
+
+  const note = S.notes[k];
+  h += '<div class="two">'
+    + '<div class="card" style="cursor:pointer" data-act="go" data-v="journal"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+      + '<div style="width:32px;height:32px;border-radius:10px;background:rgba(var(--accentRGB),.15);display:grid;place-items:center;font-size:16px">'+(note && note.mood ? note.mood : '📓')+'</div>'
+      + '<b style="font-size:14.5px">Journal</b><div class="sp"></div><span class="mini">'+(note && note.text ? 'Written' : 'Empty')+'</span></div>'
+      + '<div class="mini" style="line-height:1.55">'+(note && note.text ? esc(note.text).slice(0,120)+(note.text.length>120?'…':'') : 'Capture a thought, a win, or how the day felt.')+'</div></div>'
+    + '<div class="card" style="cursor:pointer" data-act="go" data-v="focus"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+      + '<div style="width:32px;height:32px;border-radius:10px;background:rgba(77,166,255,.15);display:grid;place-items:center;font-size:16px">⏱</div>'
+      + '<b style="font-size:14.5px">Focus</b><div class="sp"></div><span class="mini">'+fmin+' min today</span></div>'
+      + '<div class="mini" style="line-height:1.55">'+(fmin ? 'Nice work. Start another session to keep the momentum.' : 'Run a timed deep-work session and log the minutes.')+'</div></div>'
+    + '</div>';
+  return h;
+}
+
+/* =========================================================
+   VIEW: HABITS
+   ========================================================= */
+function viewHabits(){
+  const k = TODAY();
+  const all = ui.showArchived ? S.habits.filter(h => h.archived) : activeHabits();
+  const cats = ['all'].concat(CATS.filter(c => all.some(h => h.cat === c)));
+  const list = all.filter(h => ui.habitCat === 'all' || h.cat === ui.habitCat);
+
+  let h = '<div class="tabs">' + cats.map(c =>
+      '<button data-act="cat" data-c="'+c+'" class="'+(ui.habitCat===c?'on':'')+'">'+(c==='all'?'All habits':c)
+      + '<span class="n">'+(c==='all'?all.length:all.filter(x=>x.cat===c).length)+'</span></button>').join('')
+    + '<div class="sp"></div>'
+    + '<button data-act="toggleArchived" class="'+(ui.showArchived?'on':'')+'">'+(ui.showArchived?'Archived':'Active')+'</button></div>';
+
+  if(!list.length){
+    h += '<div class="card empty"><div class="e">'+(ui.showArchived?'📦':'🌱')+'</div><h3>'+(ui.showArchived?'Nothing archived':'No habits yet')+'</h3>'
+      + '<p>'+(ui.showArchived?'Habits you archive are kept here with all their history.':'Habits are the compound interest of self-improvement. Start with one or two you can hit every day.')+'</p>'
+      + (ui.showArchived?'':'<button class="btn pri" data-act="newHabit">'+ic('plus')+'Create a habit</button> <button class="btn" data-act="seed">Load starter pack</button>')+'</div>';
+    return h;
+  }
+
+  h += '<div class="hcards">' + list.map(x => habitCard(x,k)).join('') + '</div>';
+  return h;
+}
+function habitCard(h,k){
+  const st = streaks(h), r30 = rate(h,30), done = isDone(h,k), avail = scheduled(h,new Date());
+  const v = getLog(h,k), g = goalOf(h);
+  const right = !avail ? '<span class="mini">Not scheduled today</span>'
+    : h.type === 'count'
+      ? '<div class="counter"><button data-act="dec" data-id="'+h.id+'" data-k="'+k+'">&minus;</button><div class="v">'+v+'<small>/'+g+'</small></div><button data-act="inc" data-id="'+h.id+'" data-k="'+k+'">+</button></div>'
+      : '<button class="tick '+(done?'on':'')+'" data-act="toggle" data-id="'+h.id+'" data-k="'+k+'">'+ic('check',3.2)+'</button>';
+  const i = S.habits.findIndex(x => x.id === h.id);
+  const menu = ui.menu === h.id ? '<div class="menu">'
+      + '<button data-act="openHabit" data-id="'+h.id+'">'+ic('stats')+'View details</button>'
+      + '<button data-act="editHabit" data-id="'+h.id+'">'+ic('edit')+'Edit habit</button><hr>'
+      + '<button data-act="move" data-id="'+h.id+'" data-d="-1" '+(i<=0?'disabled style="opacity:.35"':'')+'>'+ic('up')+'Move up</button>'
+      + '<button data-act="move" data-id="'+h.id+'" data-d="1" '+(i>=S.habits.length-1?'disabled style="opacity:.35"':'')+'>'+ic('down')+'Move down</button><hr>'
+      + '<button data-act="archive" data-id="'+h.id+'">'+ic('archive')+(h.archived?'Restore':'Archive')+'</button>'
+      + '<button class="d" data-act="delHabit" data-id="'+h.id+'">'+ic('trash')+'Delete</button></div>' : '';
+  return '<div class="hcard" style="'+habitStyle(h)+'">'
+    + '<div class="top"><div class="hico" data-act="openHabit" data-id="'+h.id+'">'+esc(h.icon||'✅')+'</div>'
+    + '<div style="min-width:0"><div class="nm" data-act="openHabit" data-id="'+h.id+'">'+esc(h.name)+'</div>'
+    + '<div class="mt">'+freqLabel(h)+(h.cat?' · '+esc(h.cat):'')+(h.type==='count'?' · '+g+(h.unit?' '+esc(h.unit):'')+'/day':'')+'</div></div>'
+    + '<div class="menu-wrap"><button class="btn icon sm ghost" data-act="menu" data-id="'+h.id+'">'+ic('more')+'</button>'+menu+'</div></div>'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'+weekStrip(h)+'<div class="sp"></div>'+right+'</div>'
+    + '<div class="stats"><div class="st"><b>'+st.cur+'</b><span>Streak</span></div>'
+    + '<div class="st"><b>'+st.best+'</b><span>Best</span></div>'
+    + '<div class="st"><b>'+Math.round(r30*100)+'%</b><span>30 days</span></div>'
+    + '<div class="st"><b>'+totalDone(h)+'</b><span>Total</span></div></div>'
+    + '<div class="bar"><i style="width:'+(r30*100).toFixed(1)+'%"></i></div></div>';
+}
+
+/* ---------- heatmap ---------- */
+function heatmap(get, weeks, rgb){
+  const endW = weekStartOf(new Date()), startW = addD(endW, -7*(weeks-1)), t0 = today0();
+  const labels = [];
+  for(let i=0;i<7;i++){ const d = (S.settings.weekStart + i) % 7; labels.push(i%2===1 ? DAYN[d] : ''); }
+  let cols = '', lastMon = -1, months = '';
+  for(let w=0; w<weeks; w++){
+    let cells = '';
+    const first = addD(startW, w*7);
+    months += '<span style="width:16px;display:inline-block;font-size:9.5px;color:var(--muted)">'
+      + (first.getMonth() !== lastMon ? (lastMon = first.getMonth(), MON[first.getMonth()]) : '') + '</span>';
+    for(let d=0; d<7; d++){
+      const day = addD(startW, w*7+d), key = dk(day), future = day > t0;
+      const v = future ? null : get(key);
+      let style = 'background:var(--card3)';
+      if(future) style += ';opacity:.22';
+      else if(v != null && v > 0) style = 'background:rgba('+rgb+','+(0.22 + 0.78*v).toFixed(2)+')';
+      cells += '<div class="cell'+(key===TODAY()?' o':'')+'" style="'+style+'" title="'+key+' — '+(v==null?'—':Math.round(v*100)+'%')+'"></div>';
+    }
+    cols += '<div class="col">'+cells+'</div>';
+  }
+  return '<div style="display:flex;align-items:flex-start">'
+    + '<div class="hmdays">'+labels.map(l => '<span>'+l+'</span>').join('')+'</div>'
+    + '<div style="flex:1;min-width:0;overflow-x:auto"><div class="hm">'+cols+'</div></div></div>'
+    + '<div class="hmlegend">Less <i style="background:var(--card3)"></i><i style="background:rgba('+rgb+',.3)"></i><i style="background:rgba('+rgb+',.55)"></i><i style="background:rgba('+rgb+',.8)"></i><i style="background:rgba('+rgb+',1)"></i> More</div>';
+}
+
+/* ---------- habit detail ---------- */
+function openHabit(id){
+  const h = S.habits.find(x => x.id === id); if(!h) return;
+  const c = col(h.color), st = streaks(h);
+  const wd = [0,0,0,0,0,0,0], wdT = [0,0,0,0,0,0,0];
+  let d = today0(), created = pd(h.created);
+  while(d >= created){
+    if(scheduled(h,d)){ wdT[d.getDay()]++; if(isDone(h,dk(d))) wd[d.getDay()]++; }
+    d = addD(d,-1);
+  }
+  const wdMax = Math.max(...wd.map((v,i) => wdT[i]?v/wdT[i]:0), .001);
+  let bars = '';
+  for(let i=0;i<7;i++){
+    const idx = (S.settings.weekStart + i) % 7;
+    const p = wdT[idx] ? wd[idx]/wdT[idx] : 0;
+    bars += '<div class="lb"><div class="n" style="width:52px;flex:0 0 52px">'+DAYN[idx]+'</div>'
+      + '<div class="b"><div class="bar"><i style="width:'+(p*100).toFixed(0)+'%"></i></div></div>'
+      + '<div class="p">'+Math.round(p*100)+'%</div></div>';
+  }
+  const body = '<div class="mb">'
+    + '<div class="tiles" style="grid-template-columns:repeat(4,1fr);margin-bottom:18px">'
+      + tile('🔥', st.cur, 'Current streak') + tile('🏆', st.best, 'Longest')
+      + tile('📈', Math.round(rate(h,30)*100)+'%', 'Last 30d') + tile('✅', totalDone(h), 'Total done')
+    + '</div>'
+    + '<div class="sect-h"><h2>Consistency</h2><span class="c">last 26 weeks</span></div>'
+    + '<div class="card" style="margin-bottom:18px">'+heatmap(k => scheduled(h,pd(k)) ? ratioOf(h,k) : null, 26, c.rgb)+'</div>'
+    + '<div class="sect-h"><h2>By day of week</h2></div>'
+    + '<div class="card" style="margin-bottom:18px">'+bars+'</div>'
+    + '<div class="sect-h"><h2>Last 14 days</h2></div><div class="card">'+last14(h)+'</div>'
+    + (h.note ? '<div class="card" style="margin-top:14px"><div class="mini" style="margin-bottom:5px;font-weight:700">Why this matters</div><div style="font-size:13.8px;color:var(--text2);white-space:pre-wrap">'+esc(h.note)+'</div></div>' : '')
+    + '</div>';
+  modal('<div class="mh"><div class="hico" style="'+habitStyle(h)+'">'+esc(h.icon||'✅')+'</div>'
+    + '<div style="flex:1;min-width:0"><h3>'+esc(h.name)+'</h3><div class="mini">'+freqLabel(h)+(h.cat?' · '+esc(h.cat):'')+'</div></div>'
+    + '<button class="x" data-act="close">'+ic('x')+'</button></div>'
+    + body
+    + '<div class="mf"><button class="btn" data-act="archive" data-id="'+h.id+'">'+ic('archive')+(h.archived?'Restore':'Archive')+'</button>'
+    + '<button class="btn pri" data-act="editHabit" data-id="'+h.id+'">'+ic('edit')+'Edit habit</button></div>', true);
+}
+function tile(emoji, val, label){
+  return '<div class="tile"><div class="ic" style="background:var(--card2)">'+emoji+'</div><b>'+val+'</b><span>'+label+'</span></div>';
+}
+function last14(h){
+  let s = '<div style="display:flex;gap:5px;justify-content:space-between">';
+  for(let i=13;i>=0;i--){
+    const d = addD(today0(),-i), k = dk(d), av = scheduled(h,d), r = ratioOf(h,k);
+    const c = col(h.color);
+    const bg = !av ? 'var(--card3);opacity:.3' : r>=1 ? c.hex : r>0 ? 'rgba('+c.rgb+',.45)' : 'var(--card3)';
+    s += '<div style="flex:1;text-align:center">'
+      + '<div data-act="toggleDay" data-id="'+h.id+'" data-k="'+k+'" style="height:38px;border-radius:8px;background:'+bg+';cursor:pointer;transition:.18s" title="'+k+'"></div>'
+      + '<div style="font-size:9.5px;color:var(--muted);margin-top:5px">'+DAYN[d.getDay()][0]+'</div>'
+      + '<div style="font-size:9.5px;color:var(--muted)">'+d.getDate()+'</div></div>';
+  }
+  return s + '</div>';
+}
+
+/* ---------- habit editor ---------- */
+let draft = null;
+function editHabit(id){
+  if(id){
+    const h = S.habits.find(x => x.id === id); if(!h) return;
+    draft = JSON.parse(JSON.stringify(h));
+  } else {
+    draft = { id:null, name:'', icon:'✅', color:COLORS[Math.floor(Math.random()*COLORS.length)].id, cat:'Health',
+      type:'check', target:1, unit:'', freq:{t:'daily',days:[1,2,3,4,5],per:3}, reminder:'', note:'', created:TODAY(), archived:false };
+  }
+  paintHabitForm();
+}
+function paintHabitForm(){
+  const d = draft, f = d.freq || (d.freq = {t:'daily',days:[1,2,3,4,5],per:3});
+  const days = '<div class="days">' + [0,1,2,3,4,5,6].map(i => { const x = (S.settings.weekStart+i)%7;
+      return '<button data-act="fday" data-d="'+x+'" class="'+((f.days||[]).includes(x)?'on':'')+'">'+DAYN[x][0]+DAYN[x][1].toLowerCase()+'</button>'; }).join('') + '</div>';
+  const body = '<div class="mb">'
+    + '<div class="field"><label>Habit name</label><input class="inp" id="fName" placeholder="e.g. Read 20 pages" value="'+esc(d.name)+'" autocomplete="off"></div>'
+    + '<div class="field"><label>Icon</label><div class="picker">'+EMOJI.map(e => '<button data-act="femoji" data-e="'+e+'" class="'+(d.icon===e?'on':'')+'">'+e+'</button>').join('')+'</div></div>'
+    + '<div class="field"><label>Colour</label><div class="picker">'+COLORS.map(c => '<button class="swatch '+(d.color===c.id?'on':'')+'" data-act="fcolor" data-c="'+c.id+'" style="background:'+c.hex+';color:'+c.hex+'"></button>').join('')+'</div></div>'
+    + '<div class="row"><div class="field"><label>Category</label><select class="inp" id="fCat">'+CATS.map(c => '<option '+(d.cat===c?'selected':'')+'>'+c+'</option>').join('')+'</select></div>'
+    + '<div class="field"><label>Reminder (while app is open)</label><input class="inp" type="time" id="fRem" value="'+esc(d.reminder||'')+'"></div></div>'
+    + '<div class="field"><label>Type</label><div class="seg"><button data-act="ftype" data-t="check" class="'+(d.type==='check'?'on':'')+'">Simple check</button><button data-act="ftype" data-t="count" class="'+(d.type==='count'?'on':'')+'">Measurable</button></div></div>'
+    + (d.type==='count' ? '<div class="row"><div class="field"><label>Daily target</label><input class="inp" type="number" min="1" id="fTarget" value="'+(d.target||1)+'"></div><div class="field"><label>Unit</label><input class="inp" id="fUnit" placeholder="pages, glasses, km" value="'+esc(d.unit||'')+'"></div></div>' : '')
+    + '<div class="field"><label>Frequency</label><div class="seg" style="margin-bottom:10px">'
+      + '<button data-act="ffreq" data-t="daily" class="'+(f.t==='daily'?'on':'')+'">Every day</button>'
+      + '<button data-act="ffreq" data-t="days" class="'+(f.t==='days'?'on':'')+'">Specific days</button>'
+      + '<button data-act="ffreq" data-t="weekly" class="'+(f.t==='weekly'?'on':'')+'">Times / week</button></div>'
+      + (f.t==='days' ? days : f.t==='weekly'
+        ? '<div class="row" style="align-items:center"><input class="inp" type="number" min="1" max="7" id="fPer" value="'+(f.per||3)+'"><div class="mini" style="flex:2">times per week — any days you like</div></div>'
+        : '<div class="mini">Counts toward your streak every single day.</div>')
+    + '</div>'
+    + '<div class="field"><label>Why (optional)</label><textarea class="inp" id="fNote" style="min-height:70px" placeholder="Your reason — shown on the habit page when motivation dips.">'+esc(d.note||'')+'</textarea></div>'
+    + '</div>';
+  modal('<div class="mh"><h3>'+(d.id?'Edit habit':'New habit')+'</h3><button class="x" data-act="close">'+ic('x')+'</button></div>'
+    + body
+    + '<div class="mf">'+(d.id?'<button class="btn danger" data-act="delHabit" data-id="'+d.id+'">'+ic('trash')+'Delete</button>':'<button class="btn" data-act="close">Cancel</button>')
+    + '<button class="btn pri" data-act="saveHabit">'+ic('check')+(d.id?'Save changes':'Create habit')+'</button></div>');
+  setTimeout(() => { const n = el('fName'); if(n && !d.id) n.focus(); }, 60);
+}
+function pullHabitForm(){
+  const g = id => el(id);
+  if(g('fName')) draft.name = g('fName').value.trim();
+  if(g('fCat')) draft.cat = g('fCat').value;
+  if(g('fRem')) draft.reminder = g('fRem').value;
+  if(g('fTarget')) draft.target = Math.max(1, parseInt(g('fTarget').value)||1);
+  if(g('fUnit')) draft.unit = g('fUnit').value.trim();
+  if(g('fPer')) draft.freq.per = clamp(parseInt(g('fPer').value)||3, 1, 7);
+  if(g('fNote')) draft.note = g('fNote').value.trim();
+}
+function saveHabit(){
+  pullHabitForm();
+  if(!draft.name){ toast('Give your habit a name', 'err'); const n = el('fName'); if(n) n.focus(); return; }
+  if(draft.freq.t === 'days' && !(draft.freq.days||[]).length){ toast('Pick at least one day', 'err'); return; }
+  if(draft.id){
+    const i = S.habits.findIndex(x => x.id === draft.id);
+    S.habits[i] = Object.assign(S.habits[i], draft);
+    toast('Habit updated', 'ok');
+  } else {
+    draft.id = uid(); draft.created = TODAY();
+    S.habits.push(draft);
+    toast('Habit created — day one 🎉', 'ok');
+  }
+  save(true); closeModal(); render();
+}
+
+/* =========================================================
+   VIEW: TASKS
+   ========================================================= */
+const PRI = { 1:{l:'High',c:'p1'}, 2:{l:'Medium',c:'p2'}, 3:{l:'Low',c:'p3'} };
+function quickAdd(){
+  return '<div class="addrow">'
+    + '<input type="text" id="qaTitle" placeholder="Add a task…  try: Pay rent !1 #home tomorrow" autocomplete="off">'
+    + '<input type="date" class="inp" id="qaDue" style="width:auto;padding:7px 10px;font-size:13px" value="'+(V==='today'?TODAY():'')+'">'
+    + '<button class="btn pri sm" data-act="addTask">'+ic('plus')+'Add</button></div>';
+}
+function parseTask(raw){
+  let s = ' ' + raw + ' ', pri = 0, tag = '', due = '';
+  s = s.replace(/\s!([123])\b/g, (m,p) => { pri = +p; return ' '; });
+  s = s.replace(/\s#([\w-]+)/g, (m,t) => { tag = t; return ' '; });
+  const t0 = today0();
+  const rel = { today:0, tod:0, tomorrow:1, tmr:1, tom:1 };
+  s = s.replace(/\s(today|tod|tomorrow|tmr|tom)\b/i, (m,w) => { due = dk(addD(t0, rel[w.toLowerCase()])); return ' '; });
+  if(!due) s = s.replace(/\sin (\d+) ?d(ays?)?\b/i, (m,n) => { due = dk(addD(t0,+n)); return ' '; });
+  if(!due) s = s.replace(/\s(mon|tue|wed|thu|fri|sat|sun)[a-z]*\b/i, (m,w) => {
+    const idx = ['sun','mon','tue','wed','thu','fri','sat'].indexOf(w.toLowerCase());
+    let n = (idx - t0.getDay() + 7) % 7; if(n === 0) n = 7;
+    due = dk(addD(t0,n)); return ' '; });
+  return { title: s.replace(/\s+/g,' ').trim(), pri: pri||2, tag, due };
+}
+function addTaskFromInput(){
+  const i = el('qaTitle'); if(!i) return;
+  const raw = i.value.trim(); if(!raw){ i.focus(); return; }
+  const p = parseTask(raw);
+  const dueField = el('qaDue') ? el('qaDue').value : '';
+  const t = { id:uid(), title:p.title || raw, notes:'', due: p.due || dueField || '', pri:p.pri, tag:p.tag,
+              done:false, doneAt:'', created:TODAY(), sub:[] };
+  S.tasks.unshift(t); save(true);
+  i.value = ''; render();
+  const n = el('qaTitle'); if(n) n.focus();
+  toast('Task added', 'ok');
+}
+function taskRow(t){
+  const overdue = t.due && !t.done && t.due < TODAY();
+  const isToday = t.due === TODAY();
+  const subDone = (t.sub||[]).filter(s => s.d).length;
+  let pills = '';
+  if(t.tag) pills += '<span class="pill tag">#'+esc(t.tag)+'</span>';
+  if((t.sub||[]).length) pills += '<span class="pill tag">'+subDone+'/'+t.sub.length+'</span>';
+  if(t.due) pills += '<span class="pill due '+(overdue?'over':(isToday?'today':''))+'">'+(overdue?'⚠ ':'')+fmtDay(t.due)+'</span>';
+  if(!t.done && t.pri) pills += '<span class="pill '+PRI[t.pri].c+'">'+PRI[t.pri].l+'</span>';
+  return '<div class="trow '+(t.done?'done':'')+'">'
+    + '<button class="cb '+(t.done?'on':'')+'" data-act="tdone" data-id="'+t.id+'" aria-label="Complete">'+ic('check',3.4)+'</button>'
+    + '<div class="tt" data-act="editTask" data-id="'+t.id+'">'+esc(t.title)+'</div>'
+    + pills
+    + '<button class="btn icon sm ghost" data-act="delTask" data-id="'+t.id+'" aria-label="Delete">'+ic('trash')+'</button></div>';
+}
+function viewTasks(){
+  const k = TODAY(), open = S.tasks.filter(t => !t.done);
+  const counts = {
+    today: open.filter(t => t.due && t.due <= k).length,
+    upcoming: open.filter(t => t.due && t.due > k).length,
+    someday: open.filter(t => !t.due).length,
+    all: open.length,
+    done: S.tasks.filter(t => t.done).length
+  };
+  const F = [['today','Today'],['upcoming','Upcoming'],['someday','Someday'],['all','All open'],['done','Completed']];
+  let h = '<div class="tabs">' + F.map(([id,l]) =>
+      '<button data-act="tfilter" data-f="'+id+'" class="'+(ui.taskFilter===id?'on':'')+'">'+l+'<span class="n">'+counts[id]+'</span></button>').join('') + '</div>';
+  h += quickAdd();
+
+  let list;
+  if(ui.taskFilter === 'today') list = open.filter(t => t.due && t.due <= k);
+  else if(ui.taskFilter === 'upcoming') list = open.filter(t => t.due && t.due > k);
+  else if(ui.taskFilter === 'someday') list = open.filter(t => !t.due);
+  else if(ui.taskFilter === 'done') list = S.tasks.filter(t => t.done);
+  else list = open;
+
+  if(!list.length){
+    return h + '<div class="card empty"><div class="e">'+(ui.taskFilter==='done'?'🏁':'✨')+'</div>'
+      + '<h3>'+(ui.taskFilter==='done'?'No completed tasks yet':'All clear')+'</h3>'
+      + '<p>'+(ui.taskFilter==='done'?'Finished tasks land here so you can see what you shipped.':'Nothing in this list. Add a task above — you can type a priority with !1 and a tag with #work.')+'</p>'
+      + '</div>';
+  }
+
+  const sortP = (a,b) => (a.pri||2) - (b.pri||2) || (a.created < b.created ? 1 : -1);
+  if(ui.taskFilter === 'upcoming'){
+    const groups = {};
+    list.forEach(t => { (groups[t.due] = groups[t.due] || []).push(t); });
+    h += Object.keys(groups).sort().map(d =>
+      '<div class="daygroup"><h3>'+fmtDay(d)+'</h3>'+groups[d].sort(sortP).map(taskRow).join('')+'</div>').join('');
+  } else if(ui.taskFilter === 'done'){
+    const groups = {};
+    list.forEach(t => { const d = t.doneAt || t.created || '—'; (groups[d] = groups[d] || []).push(t); });
+    h += Object.keys(groups).sort().reverse().slice(0,30).map(d =>
+      '<div class="daygroup"><h3>'+(d==='—'?'Earlier':fmtDay(d))+'</h3>'+groups[d].map(taskRow).join('')+'</div>').join('');
+    h += '<div style="text-align:center;margin-top:6px"><button class="btn danger sm" data-act="clearDone">'+ic('trash')+'Clear completed</button></div>';
+  } else {
+    const over = list.filter(t => t.due && t.due < k).sort(sortP);
+    const rest = list.filter(t => !(t.due && t.due < k)).sort((a,b) => (a.due||'9999') < (b.due||'9999') ? -1 : (a.due||'9999') > (b.due||'9999') ? 1 : sortP(a,b));
+    if(over.length) h += '<div class="daygroup"><h3 style="color:var(--bad)">Overdue</h3>'+over.map(taskRow).join('')+'</div>';
+    h += '<div class="daygroup">'+(over.length?'<h3>Scheduled</h3>':'')+rest.map(taskRow).join('')+'</div>';
+  }
+  return h;
+}
+let tdraft = null;
+function editTask(id){
+  const t = S.tasks.find(x => x.id === id); if(!t) return;
+  tdraft = JSON.parse(JSON.stringify(t)); tdraft.sub = tdraft.sub || [];
+  paintTaskForm();
+}
+function paintTaskForm(){
+  const t = tdraft;
+  const subs = t.sub.map((s,i) =>
+    '<div style="display:flex;align-items:center;gap:9px;margin-bottom:7px">'
+    + '<button class="cb '+(s.d?'on':'')+'" data-act="subToggle" data-i="'+i+'">'+ic('check',3.4)+'</button>'
+    + '<input class="inp" data-sub="'+i+'" value="'+esc(s.t)+'" style="padding:7px 11px;font-size:13.5px">'
+    + '<button class="btn icon sm ghost" data-act="subDel" data-i="'+i+'">'+ic('x')+'</button></div>').join('');
+  modal('<div class="mh"><h3>Edit task</h3><button class="x" data-act="close">'+ic('x')+'</button></div>'
+    + '<div class="mb">'
+    + '<div class="field"><label>Task</label><input class="inp" id="eTitle" value="'+esc(t.title)+'"></div>'
+    + '<div class="row"><div class="field"><label>Due date</label><input class="inp" type="date" id="eDue" value="'+esc(t.due||'')+'"></div>'
+    + '<div class="field"><label>Tag</label><input class="inp" id="eTag" placeholder="work, home…" value="'+esc(t.tag||'')+'"></div></div>'
+    + '<div class="field"><label>Priority</label><div class="seg">'
+      + [1,2,3].map(p => '<button data-act="epri" data-p="'+p+'" class="'+(t.pri===p?'on':'')+'">'+PRI[p].l+'</button>').join('')
+    + '</div></div>'
+    + '<div class="field"><label>Checklist</label>'+subs
+    + '<button class="btn sm" data-act="subAdd" style="margin-top:'+(subs?'4px':'0')+'">'+ic('plus')+'Add step</button></div>'
+    + '<div class="field"><label>Notes</label><textarea class="inp" id="eNotes" placeholder="Details, links, context…">'+esc(t.notes||'')+'</textarea></div>'
+    + '</div>'
+    + '<div class="mf"><button class="btn danger" data-act="delTask" data-id="'+t.id+'">'+ic('trash')+'Delete</button>'
+    + '<button class="btn pri" data-act="saveTask">'+ic('check')+'Save</button></div>');
+}
+function pullTaskForm(){
+  if(el('eTitle')) tdraft.title = el('eTitle').value.trim();
+  if(el('eDue')) tdraft.due = el('eDue').value;
+  if(el('eTag')) tdraft.tag = el('eTag').value.trim().replace(/^#/,'');
+  if(el('eNotes')) tdraft.notes = el('eNotes').value;
+  document.querySelectorAll('[data-sub]').forEach(i => { tdraft.sub[+i.dataset.sub].t = i.value; });
+}
+function saveTask(){
+  pullTaskForm();
+  if(!tdraft.title){ toast('Task needs a title','err'); return; }
+  tdraft.sub = tdraft.sub.filter(s => s.t.trim());
+  const i = S.tasks.findIndex(x => x.id === tdraft.id);
+  S.tasks[i] = Object.assign(S.tasks[i], tdraft);
+  save(true); closeModal(); render(); toast('Task saved','ok');
+}
+
+/* =========================================================
+   VIEW: INSIGHTS
+   ========================================================= */
+function barChart(data, accent){
+  const W = 720, H = 168, pb = 24, pt = 12;
+  const n = Math.max(1, data.length);
+  const gap = n > 40 ? 2 : n > 20 ? 3 : 6;
+  const bw = Math.max(2, (W - (n-1)*gap) / n);
+  let bars = '', labels = '';
+  data.forEach((d,i) => {
+    const v = clamp(d.v||0, 0, 1);
+    const bh = Math.max(v > 0 ? 4 : 2, v*(H-pb-pt));
+    const x = i*(bw+gap), y = H - pb - bh;
+    const fill = v >= 1 ? 'url(#gb)' : v > 0 ? 'rgba('+accent+','+(0.35+0.5*v).toFixed(2)+')' : 'var(--card3)';
+    bars += '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="'+Math.min(4,bw/2).toFixed(1)+'" fill="'+fill+'"><title>'+d.title+'</title></rect>';
+    if(d.label) labels += '<text x="'+(x+bw/2).toFixed(1)+'" y="'+(H-7)+'" text-anchor="middle" font-size="10" fill="var(--muted)">'+d.label+'</text>';
+  });
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'">'
+    + '<defs><linearGradient id="gb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent2)"/></linearGradient></defs>'
+    + '<line x1="0" y1="'+(H-pb)+'" x2="'+W+'" y2="'+(H-pb)+'" stroke="var(--line)" stroke-width="1"/>'
+    + bars + labels + '</svg>';
+}
+function viewStats(){
+  const A = col(S.settings.accent).rgb;
+  const R = ui.statRange;
+  const acts = activeHabits();
+  let totalDoneAll = 0; S.habits.forEach(h => totalDoneAll += totalDone(h));
+  let bestStreak = 0, bestHabit = null;
+  S.habits.forEach(h => { const s = streaks(h); if(s.best > bestStreak){ bestStreak = s.best; bestHabit = h; } });
+  let perfect = 0, scored = 0, sum = 0;
+  for(let i=0;i<R;i++){ const s = dayScore(dk(addD(today0(),-i))); if(s != null){ scored++; sum += s; if(s === 1) perfect++; } }
+  const avg = scored ? sum/scored : 0;
+  let prevSum = 0, prevN = 0;
+  for(let i=R;i<R*2;i++){ const s = dayScore(dk(addD(today0(),-i))); if(s != null){ prevN++; prevSum += s; } }
+  const prevAvg = prevN ? prevSum/prevN : 0;
+  const delta = Math.round((avg - prevAvg)*100);
+
+  const data = [];
+  for(let i=R-1;i>=0;i--){
+    const d = addD(today0(),-i), k = dk(d), s = dayScore(k);
+    data.push({ v: s==null?0:s, title: k+' — '+(s==null?'no habits':Math.round(s*100)+'%'),
+      label: R<=14 ? DAYN[d.getDay()][0] : (R<=31 && d.getDate()%5===0 ? d.getDate() : (R>31 && d.getDate()===1 ? MON[d.getMonth()] : '')) });
+  }
+
+  let h = '<div class="tiles" style="margin-bottom:18px">'
+    + '<div class="tile"><div class="ic" style="background:rgba(var(--accentRGB),.16)">📊</div><b>'+Math.round(avg*100)+'%</b><span>Avg completion · '+R+'d</span>'
+      + (prevN ? '<span class="tr '+(delta>=0?'up':'dn')+'">'+(delta>=0?'+':'')+delta+'%</span>' : '') + '</div>'
+    + '<div class="tile"><div class="ic" style="background:rgba(255,176,32,.16)">🔥</div><b>'+perfectStreak()+'</b><span>Perfect-day streak</span></div>'
+    + '<div class="tile"><div class="ic" style="background:rgba(51,214,159,.16)">🏆</div><b>'+bestStreak+'</b><span>Longest streak'+(bestHabit?' · '+esc(bestHabit.name.slice(0,14)):'')+'</span></div>'
+    + '<div class="tile"><div class="ic" style="background:rgba(77,166,255,.16)">✅</div><b>'+totalDoneAll+'</b><span>Total completions</span></div>'
+    + '<div class="tile"><div class="ic" style="background:rgba(168,85,247,.16)">🌟</div><b>'+perfect+'</b><span>Perfect days · '+R+'d</span></div>'
+    + '<div class="tile"><div class="ic" style="background:rgba(45,212,191,.16)">🎯</div><b>'+acts.length+'</b><span>Active habits</span></div>'
+    + '</div>';
+
+  h += '<div class="sect"><div class="sect-h"><h2>Daily completion</h2><div class="sp"></div>'
+    + '<div class="seg" style="width:auto">'+[7,30,90].map(r => '<button data-act="range" data-r="'+r+'" class="'+(R===r?'on':'')+'" style="padding:5px 12px;font-size:12.5px">'+r+'d</button>').join('')+'</div></div>'
+    + '<div class="card">'+barChart(data, A)+'</div></div>';
+
+  h += '<div class="sect"><div class="sect-h"><h2>Consistency map</h2><span class="c">last 26 weeks</span></div>'
+    + '<div class="card">'+heatmap(k => dayScore(k), 26, A)+'</div></div>';
+
+  if(acts.length){
+    const ranked = acts.slice().sort((a,b) => rate(b,R) - rate(a,R));
+    h += '<div class="sect"><div class="sect-h"><h2>Habit leaderboard</h2><span class="c">'+R+' days</span></div><div class="card">'
+      + ranked.map(x => { const p = rate(x,R), c = col(x.color);
+          return '<div class="lb"><div class="n" style="--hc:'+c.hex+'"><span>'+esc(x.icon||'✅')+'</span><span style="overflow:hidden;text-overflow:ellipsis">'+esc(x.name)+'</span></div>'
+            + '<div class="b"><div class="bar"><i style="width:'+(p*100).toFixed(0)+'%;background:linear-gradient(90deg,'+c.hex+',var(--accent2))"></i></div></div>'
+            + '<div class="p">'+Math.round(p*100)+'%</div></div>'; }).join('')
+      + '</div></div>';
+  }
+
+  const wd = [0,0,0,0,0,0,0], wdN = [0,0,0,0,0,0,0];
+  for(let i=0;i<120;i++){ const d = addD(today0(),-i), s = dayScore(dk(d)); if(s != null){ wd[d.getDay()] += s; wdN[d.getDay()]++; } }
+  let wdBars = '';
+  for(let i=0;i<7;i++){ const x = (S.settings.weekStart+i)%7, p = wdN[x] ? wd[x]/wdN[x] : 0;
+    wdBars += '<div class="lb"><div class="n" style="width:56px;flex:0 0 56px">'+DAYN[x]+'</div><div class="b"><div class="bar"><i style="width:'+(p*100).toFixed(0)+'%"></i></div></div><div class="p">'+Math.round(p*100)+'%</div></div>'; }
+
+  const doneTasks = S.tasks.filter(t => t.done);
+  const last7 = doneTasks.filter(t => t.doneAt && t.doneAt >= dk(addD(today0(),-6))).length;
+  const overdue = S.tasks.filter(t => !t.done && t.due && t.due < TODAY()).length;
+  const fWeek = S.focus.filter(f => f.date >= dk(weekStartOf(new Date()))).reduce((a,b) => a+b.min, 0);
+  const fAll = S.focus.reduce((a,b) => a+b.min, 0);
+
+  h += '<div class="two"><div class="card"><div class="sect-h"><h2>Best days of the week</h2></div>'+wdBars+'</div>'
+    + '<div class="card"><div class="sect-h"><h2>Tasks &amp; focus</h2></div>'
+      + srow('Tasks completed', doneTasks.length) + srow('Completed this week', last7)
+      + srow('Open tasks', S.tasks.filter(t=>!t.done).length) + srow('Overdue', overdue, overdue?'var(--bad)':'')
+      + srow('Focus this week', fWeek+' min') + srow('Focus all time', (fAll>=60 ? (fAll/60).toFixed(1)+' h' : fAll+' min'))
+      + srow('Journal entries', Object.keys(S.notes).filter(k=>S.notes[k].text||S.notes[k].mood).length)
+      + srow('Tracking since', S.habits.length ? fmtDay(S.habits.map(x=>x.created).sort()[0]) : '—')
+    + '</div></div>';
+  return h;
+}
+function srow(label, val, colr){
+  return '<div style="display:flex;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)">'
+    + '<span style="font-size:13.6px;color:var(--text2);flex:1">'+label+'</span>'
+    + '<b style="font-size:14.5px'+(colr?';color:'+colr:'')+'">'+val+'</b></div>';
+}
+
+/* =========================================================
+   VIEW: JOURNAL
+   ========================================================= */
+const MOODS = ['😄','🙂','😐','😕','😫'];
+function viewJournal(){
+  const k = ui.jDate, n = S.notes[k] || { text:'', mood:'' };
+  const isToday = k === TODAY();
+  const keys = Object.keys(S.notes).filter(x => S.notes[x] && (S.notes[x].text || S.notes[x].mood)).sort().reverse();
+  const ds = dayScore(k);
+  let h = '<div class="card" style="margin-bottom:18px">'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'
+      + '<button class="btn icon" data-act="jprev">'+ic('left')+'</button>'
+      + '<div style="flex:1;text-align:center"><b style="font-size:16px">'+fmtDay(k)+'</b>'
+      + '<div class="mini">'+(ds!=null?Math.round(ds*100)+'% of habits done':'no habits tracked')+'</div></div>'
+      + '<button class="btn icon" data-act="jnext" '+(isToday?'disabled':'')+'>'+ic('right')+'</button></div>'
+    + '<div class="field"><label>How did the day feel?</label><div class="moods">'
+      + MOODS.map(m => '<button data-act="mood" data-m="'+m+'" class="'+(n.mood===m?'on':'')+'">'+m+'</button>').join('')
+      + (n.mood ? '<button class="btn sm ghost" data-act="mood" data-m="" style="align-self:center">Clear</button>' : '')
+    + '</div></div>'
+    + '<div class="field" style="margin-bottom:8px"><label>Notes</label>'
+      + '<textarea class="inp" id="jText" style="min-height:170px" placeholder="What went well? What got in the way? One thing to do better tomorrow…">'+esc(n.text||'')+'</textarea></div>'
+    + '<div style="display:flex;align-items:center;gap:10px"><span class="mini" id="jStatus">Saves automatically</span><div class="sp"></div>'
+    + '<button class="btn sm" data-act="jsave">'+ic('check')+'Save</button></div></div>';
+
+  h += '<div class="sect-h"><h2>Earlier entries</h2><span class="c">'+keys.length+'</span></div>';
+  if(!keys.length) h += '<div class="card empty" style="padding:26px"><div class="e">📖</div><h3>Nothing written yet</h3><p>A two-line note each evening becomes a surprisingly useful record.</p></div>';
+  else h += keys.slice(0,60).map(x => { const e = S.notes[x];
+      return '<div class="jentry" data-act="jgo" data-k="'+x+'"><div class="jh"><span style="font-size:17px">'+(e.mood||'📝')+'</span><b>'+fmtDay(x)+'</b><span>'+x+'</span></div>'
+        + (e.text ? '<p>'+esc(e.text.length>260 ? e.text.slice(0,260)+'…' : e.text)+'</p>' : '<p class="mini">Mood only</p>') + '</div>'; }).join('');
+  return h;
+}
+function jSave(){
+  const t = el('jText'); if(!t) return;
+  const k = ui.jDate, cur = S.notes[k] || {};
+  S.notes[k] = { text: t.value, mood: cur.mood || '' };
+  if(!S.notes[k].text && !S.notes[k].mood) delete S.notes[k];
+  save();
+  const s = el('jStatus'); if(s){ s.textContent = 'Saved ✓'; setTimeout(() => { if(el('jStatus')) el('jStatus').textContent = 'Saves automatically'; }, 1600); }
+}
+
+/* =========================================================
+   VIEW: FOCUS
+   ========================================================= */
+const T = { running:false, endAt:0, left:25*60, total:25*60, preset:25, habit:'', tick:null, break:false };
+function viewFocus(){
+  const k = TODAY();
+  const todaySess = S.focus.filter(f => f.date === k);
+  const todayMin = todaySess.reduce((a,b) => a+b.min, 0);
+  const weekMin = S.focus.filter(f => f.date >= dk(weekStartOf(new Date()))).reduce((a,b) => a+b.min, 0);
+  const opts = '<option value="">No habit linked</option>' + activeHabits().map(h => '<option value="'+h.id+'" '+(T.habit===h.id?'selected':'')+'>'+esc(h.icon+' '+h.name)+'</option>').join('');
+  let h = '<div class="card" style="margin-bottom:18px"><div class="timer">'
+    + '<div class="ring" id="tRing"></div>'
+    + '<div class="presets">'+[15,25,50,90].map(p => '<button data-act="preset" data-p="'+p+'" class="'+(T.preset===p&&!T.break?'on':'')+'">'+p+' min</button>').join('')
+      + '<button data-act="preset" data-p="5" class="'+(T.break?'on':'')+'" data-b="1">☕ 5 min break</button></div>'
+    + '<div style="display:flex;gap:10px;align-items:center">'
+      + '<button class="btn icon" data-act="tReset" title="Reset">'+ic('reset')+'</button>'
+      + '<button class="btn pri" data-act="tToggle" style="min-width:148px;padding:12px 22px">'+ic(T.running?'pause':'play')+(T.running?'Pause':'Start focus')+'</button>'
+      + '<button class="btn icon" data-act="tSkip" title="Log &amp; finish">'+ic('check')+'</button></div>'
+    + '<div style="width:100%;max-width:330px"><select class="inp" id="tHabit">'+opts+'</select></div>'
+    + '</div></div>';
+  h += '<div class="tiles" style="margin-bottom:18px">'
+    + tile('⏱', todayMin+' min', 'Focused today')
+    + tile('📅', (weekMin>=60?(weekMin/60).toFixed(1)+' h':weekMin+' min'), 'This week')
+    + tile('🎯', todaySess.length, 'Sessions today')
+    + tile('∑', (S.focus.reduce((a,b)=>a+b.min,0)/60).toFixed(1)+' h', 'All time') + '</div>';
+  const recent = S.focus.slice(-40).reverse();
+  h += '<div class="sect-h"><h2>Session log</h2><span class="c">'+S.focus.length+'</span></div>';
+  if(!recent.length) h += '<div class="card empty" style="padding:26px"><div class="e">🎧</div><h3>No sessions yet</h3><p>Pick a length, hit start, and put the phone face-down. Finished sessions are logged here.</p></div>';
+  else h += '<div class="card">' + recent.map(f => { const hb = S.habits.find(x => x.id === f.habit);
+      return '<div style="display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--line)">'
+        + '<div style="width:30px;height:30px;border-radius:9px;background:var(--card2);display:grid;place-items:center;font-size:14px">'+(hb?esc(hb.icon):'⏱')+'</div>'
+        + '<div style="flex:1;min-width:0"><div style="font-size:13.8px;font-weight:600">'+(hb?esc(hb.name):(f.break?'Break':'Focus session'))+'</div>'
+        + '<div class="mini">'+fmtDay(f.date)+' · '+(f.at||'')+'</div></div>'
+        + '<b style="font-size:14px">'+f.min+' min</b></div>'; }).join('') + '</div>';
+  return h;
+}
+function paintTimer(){
+  const r = el('tRing'); if(!r) return;
+  const p = T.total ? 1 - T.left/T.total : 0;
+  const m = Math.floor(T.left/60), s = T.left%60;
+  r.innerHTML = ring(p, 236, 12, T.break ? '#33D69F' : null)
+    + '<div class="rt"><b>'+pad(m)+':'+pad(s)+'</b><span>'+(T.running ? (T.break?'BREAK':'FOCUS') : 'READY')+'</span></div>';
+}
+function tickTimer(){
+  T.left = Math.max(0, Math.round((T.endAt - Date.now())/1000));
+  paintTimer();
+  if(T.left <= 0){ finishTimer(true); }
+}
+function startTimer(){
+  const sel = el('tHabit'); if(sel) T.habit = sel.value;
+  T.running = true; T.endAt = Date.now() + T.left*1000;
+  clearInterval(T.tick); T.tick = setInterval(tickTimer, 250);
+  render();
+}
+function pauseTimer(){ T.running = false; clearInterval(T.tick); render(); }
+function resetTimer(){ T.running = false; clearInterval(T.tick); T.left = T.total; render(); }
+function finishTimer(auto){
+  clearInterval(T.tick); T.running = false;
+  const spent = Math.round((T.total - T.left)/60);
+  if(spent >= 1){
+    const now = new Date();
+    S.focus.push({ id:uid(), date:TODAY(), at:pad(now.getHours())+':'+pad(now.getMinutes()), min:spent, habit:T.habit||'', break:!!T.break });
+    save(true);
+    toast(spent+' min logged'+(T.break?' (break)':'')+' 🎧', 'ok');
+    if(auto && !T.break){ beep(); if(S.settings.confetti) confetti(); }
+  }
+  T.left = T.total; render();
+}
+function beep(){
+  if(!S.settings.sound) return;
+  try{
+    const C = new (window.AudioContext||window.webkitAudioContext)();
+    [0,.18,.36].forEach((t,i) => {
+      const o = C.createOscillator(), g = C.createGain();
+      o.type = 'sine'; o.frequency.value = [660,880,1046][i];
+      g.gain.setValueAtTime(.0001, C.currentTime+t);
+      g.gain.exponentialRampToValueAtTime(.22, C.currentTime+t+.02);
+      g.gain.exponentialRampToValueAtTime(.0001, C.currentTime+t+.16);
+      o.connect(g); g.connect(C.destination); o.start(C.currentTime+t); o.stop(C.currentTime+t+.2);
+    });
+    setTimeout(() => C.close(), 900);
+  }catch(e){}
+}
+
+/* =========================================================
+   VIEW: SETTINGS
+   ========================================================= */
+function viewSettings(){
+  const s = S.settings;
+  const kb = (storageBytes()/1024).toFixed(1);
+  let h = '<div class="card" style="margin-bottom:16px"><div class="sect-h"><h2>Personal</h2></div>'
+    + '<div class="field"><label>Your name (used in greetings)</label><input class="inp" id="sName" value="'+esc(s.name)+'" placeholder="Sujit"></div>'
+    + '<div class="field" style="margin-bottom:0"><label>Week starts on</label><select class="inp" id="sWeek">'
+      + [1,0,6].map(i => '<option value="'+i+'" '+(s.weekStart===i?'selected':'')+'>'+DAYN[i]+'</option>').join('')+'</select></div></div>';
+
+  h += '<div class="card" style="margin-bottom:16px"><div class="sect-h"><h2>Appearance</h2></div>'
+    + '<div class="field"><label>Theme</label><div class="seg">'
+      + [['dark','🌙 Dark'],['light','☀️ Light'],['system','🖥 System']].map(([v,l]) => '<button data-act="theme" data-t="'+v+'" class="'+(s.theme===v?'on':'')+'">'+l+'</button>').join('')
+    + '</div></div>'
+    + '<div class="field" style="margin-bottom:0"><label>Accent colour</label><div class="picker">'
+      + COLORS.map(c => '<button class="swatch '+(s.accent===c.id?'on':'')+'" data-act="accent" data-c="'+c.id+'" style="background:'+c.hex+';color:'+c.hex+'"></button>').join('')
+    + '</div></div></div>';
+
+  h += '<div class="card" style="margin-bottom:16px"><div class="sect-h"><h2>Behaviour</h2></div>'
+    + '<div class="srow"><div class="t"><b>Celebrate perfect days</b><span>Confetti when you complete everything</span></div>'
+      + '<button class="switch '+(s.confetti?'on':'')+'" data-act="toggleSet" data-s="confetti"></button></div>'
+    + '<div class="srow"><div class="t"><b>Sound</b><span>Chime when a focus session ends</span></div>'
+      + '<button class="switch '+(s.sound?'on':'')+'" data-act="toggleSet" data-s="sound"></button></div>'
+    + '<div class="srow"><div class="t"><b>Habit reminders</b><span>Browser notifications while this page is open. Set a time on each habit.</span></div>'
+      + '<button class="switch '+(s.notify?'on':'')+'" data-act="notify"></button></div></div>';
+
+  const used = storageBytes(), pctUsed = clamp(used/(5*1024*1024), 0, 1);
+  const bakDate = DB.getItem(BAKKEY + '.date');
+  h += '<div class="card" style="margin-bottom:16px"><div class="sect-h"><h2>Local storage</h2>'
+    + '<span class="c" style="'+(DB.ok?'color:var(--good)':'color:var(--bad)')+'">'+(DB.ok ? (storageError ? 'full' : 'working') : 'unavailable')+'</span></div>'
+    + '<div class="mini" style="line-height:1.6">'
+      + (DB.ok
+        ? 'Everything — habits, every logged day, tasks, journal entries and focus sessions — is written straight to this browser\'s local storage on this device. It is saved the instant you tap, again when you leave the page, and every 15 seconds while you work. No account, no server, no network request.'
+        : '<b style="color:var(--bad)">Not saving.</b> ' + esc(DB.reason) + '. Momentum is running from memory only — export a backup before closing this tab.')
+    + '</div>'
+    + '<div class="meter"><i style="width:'+(Math.max(1.5,pctUsed*100)).toFixed(1)+'%"></i></div>'
+    + '<div class="mini" style="display:flex"><span>'+kb+' KB used</span><div class="sp"></div><span>~5 MB available</span></div>'
+    + '<div class="srow" style="margin-top:6px"><div class="t"><b>Automatic daily backup</b>'
+      + '<span>'+(bakDate ? 'A second copy is kept inside this browser, last written '+fmtDay(bakDate)+'. If the main record is ever damaged, Momentum restores from it on its own.' : 'A second copy is written once a day as soon as you make a change.')+'</span></div>'
+      + (bakDate ? '<button class="btn sm" data-act="restoreBackup">'+ic('reset')+'Restore</button>' : '') + '</div>'
+    + '</div>';
+
+  h += '<div class="card" style="margin-bottom:16px"><div class="sect-h"><h2>Your data</h2><span class="c">'+kb+' KB</span></div>'
+    + '<div class="mini" style="margin-bottom:14px;line-height:1.6">Clearing the browser\'s site data erases everything, so export a backup now and then. '
+    + 'To move to your phone, copy this file across and import the backup.</div>'
+    + '<div style="display:flex;gap:9px;flex-wrap:wrap">'
+      + '<button class="btn" data-act="exportData">'+ic('down')+'Export backup</button>'
+      + '<button class="btn" data-act="importData">'+ic('up')+'Import backup</button>'
+      + '<button class="btn" data-act="copyData">'+ic('copy')+'Copy JSON</button>'
+      + '<button class="btn danger" data-act="resetData">'+ic('trash')+'Erase everything</button></div>'
+    + '<input type="file" id="fileIn" accept="application/json,.json" style="display:none">'
+    + '<div class="srow" style="margin-top:12px"><div class="t"><b>Habits</b></div><b>'+S.habits.length+'</b></div>'
+    + '<div class="srow"><div class="t"><b>Logged completions</b></div><b>'+Object.values(S.logs).reduce((a,o)=>a+Object.keys(o).length,0)+'</b></div>'
+    + '<div class="srow"><div class="t"><b>Tasks</b></div><b>'+S.tasks.length+'</b></div>'
+    + '<div class="srow"><div class="t"><b>Journal entries</b></div><b>'+Object.keys(S.notes).length+'</b></div></div>';
+
+  h += '<div class="card"><div class="sect-h"><h2>Tips &amp; shortcuts</h2></div>'
+    + '<div class="srow"><div class="t"><b>Use it on your phone</b><span>Copy Momentum.html to your phone, open it in Chrome/Safari, then “Add to Home screen”. It runs full-screen and offline. Phone and laptop keep separate data — sync by exporting a backup and importing it on the other device.</span></div></div>'
+    + '<div class="srow"><div class="t"><b>Quick task syntax</b><span>Type <kbd>!1</kbd> for high priority, <kbd>#tag</kbd> for a tag, and <kbd>today</kbd> / <kbd>tomorrow</kbd> / <kbd>fri</kbd> / <kbd>in 3 days</kbd> for a due date.</span></div></div>'
+    + '<div class="srow"><div class="t"><b>Keyboard</b><span><kbd>H</kbd> new habit · <kbd>T</kbd> new task · <kbd>1</kbd>–<kbd>7</kbd> switch views · <kbd>Esc</kbd> close</span></div></div>'
+    + '<div class="srow"><div class="t"><b>Backfill a day</b><span>Open any habit and click the bars under “Last 14 days” to tick a day you forgot.</span></div></div>'
+    + '<div style="text-align:center;padding-top:14px" class="mini">Momentum · single-file · v1.0 · built for '+esc(s.name||'you')+'</div></div>';
+  return h;
+}
+
+/* =========================================================
+   MODALS · TOASTS · CONFETTI
+   ========================================================= */
+function modal(html, wide){
+  el('modalHost').innerHTML = '<div class="ov" data-ov="1"><div class="modal'+(wide?' wide':'')+'">'+html+'</div></div>';
+}
+function closeModal(){ el('modalHost').innerHTML = ''; draft = null; tdraft = null; askCb = null; }
+let askCb = null;
+function ask(title, msg, label, cb){
+  askCb = cb;
+  modal('<div class="mh"><h3>'+title+'</h3><button class="x" data-act="close">'+ic('x')+'</button></div>'
+    + '<div class="mb"><p style="margin:0;color:var(--text2);font-size:14.5px;line-height:1.62">'+msg+'</p></div>'
+    + '<div class="mf"><button class="btn" data-act="close">Cancel</button>'
+    + '<button class="btn danger" data-act="askYes" style="background:rgba(255,92,122,.14)">'+label+'</button></div>');
+}
+function toast(msg, kind){
+  const d = document.createElement('div');
+  d.className = 'toast ' + (kind||'');
+  d.innerHTML = (kind === 'ok' ? '✅ ' : kind === 'err' ? '⚠️ ' : '') + esc(msg);
+  el('toast').appendChild(d);
+  setTimeout(() => { d.style.transition = '.3s'; d.style.opacity = '0'; d.style.transform = 'translateY(10px)'; setTimeout(() => d.remove(), 320); }, 2300);
+}
+function confetti(){
+  const cv = el('confetti'), ctx = cv.getContext('2d');
+  const W = cv.width = innerWidth, H = cv.height = innerHeight;
+  const cols = COLORS.slice(0,9).map(c => c.hex);
+  const parts = Array.from({length:130}, () => ({
+    x: W/2 + (Math.random()-.5)*W*.7, y: H*.35 + (Math.random()-.5)*90,
+    vx: (Math.random()-.5)*11, vy: Math.random()*-13 - 4,
+    s: 5 + Math.random()*7, r: Math.random()*6.3, vr: (Math.random()-.5)*.34,
+    c: cols[Math.floor(Math.random()*cols.length)], sq: Math.random() > .4
+  }));
+  let f = 0;
+  (function frame(){
+    ctx.clearRect(0,0,W,H); f++;
+    parts.forEach(p => {
+      p.vy += .38; p.x += p.vx; p.y += p.vy; p.r += p.vr; p.vx *= .992;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r);
+      ctx.globalAlpha = Math.max(0, 1 - f/110); ctx.fillStyle = p.c;
+      if(p.sq) ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.62);
+      else { ctx.beginPath(); ctx.arc(0,0,p.s/2,0,7); ctx.fill(); }
+      ctx.restore();
+    });
+    if(f < 115) requestAnimationFrame(frame); else ctx.clearRect(0,0,W,H);
+  })();
+}
+
+/* =========================================================
+   THEME + DATA OPS
+   ========================================================= */
+function applyTheme(){
+  const t = S.settings.theme;
+  const dark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+  const root = document.documentElement;
+  root.dataset.theme = dark ? 'dark' : 'light';
+  const c = col(S.settings.accent);
+  root.style.setProperty('--accent', c.hex);
+  root.style.setProperty('--accentRGB', c.rgb);
+  root.style.setProperty('--accent2', c.id === 'blue' ? '#7C5CFF' : c.id === 'violet' ? '#4DA6FF' : '#4DA6FF');
+  const m = document.querySelector('meta[name="theme-color"]');
+  if(m) m.content = dark ? '#0A0C11' : '#F4F6FB';
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(S,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'momentum-backup-' + TODAY() + '.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  toast('Backup downloaded', 'ok');
+}
+function copyJSON(){
+  const txt = JSON.stringify(S);
+  const fallback = () => {
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = txt; ta.style.position = 'fixed'; ta.style.top = '-999px'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      const ok = document.execCommand('copy'); ta.remove();
+      toast(ok ? 'JSON copied to clipboard' : 'Copy blocked — use Export backup', ok ? 'ok' : 'err');
+    }catch(e){ toast('Copy blocked — use Export backup', 'err'); }
+  };
+  try{
+    if(navigator && navigator.clipboard && navigator.clipboard.writeText)
+      navigator.clipboard.writeText(txt).then(() => toast('JSON copied to clipboard','ok'), fallback);
+    else fallback();
+  }catch(e){ fallback(); }
+}
+function importData(){
+  const f = el('fileIn'); if(!f) return;
+  f.onchange = () => {
+    const file = f.files[0]; if(!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try{
+        const d = JSON.parse(r.result);
+        if(!d || !Array.isArray(d.habits)) throw 0;
+        S = normalize(d);
+        save(true); applyTheme(); resetScroll = true; render();
+        toast('Backup restored — ' + S.habits.length + ' habits, ' + S.tasks.length + ' tasks', 'ok');
+      }catch(e){ toast('That file is not a Momentum backup', 'err'); }
+      f.value = '';
+    };
+    r.readAsText(file);
+  };
+  f.click();
+}
+function seed(){
+  const pack = [
+    {name:'Drink water',   icon:'💧', color:'blue',   cat:'Health',  type:'count', target:8, unit:'glasses', freq:{t:'daily'}},
+    {name:'Move 30 min',   icon:'🏃', color:'green',  cat:'Fitness', type:'check', freq:{t:'days', days:[1,2,3,4,5]}},
+    {name:'Read',          icon:'📚', color:'amber',  cat:'Mind',    type:'count', target:20, unit:'pages', freq:{t:'daily'}},
+    {name:'No phone in bed',icon:'📵',color:'red',    cat:'Mind',    type:'check', freq:{t:'daily'}},
+    {name:'Deep work',     icon:'💻', color:'violet', cat:'Work',    type:'check', freq:{t:'days', days:[1,2,3,4,5]}},
+    {name:'Plan tomorrow', icon:'✍️', color:'cyan',   cat:'Work',    type:'check', freq:{t:'daily'}},
+    {name:'Call family',   icon:'☎️', color:'pink',   cat:'Social',  type:'check', freq:{t:'weekly', per:2}}
+  ];
+  pack.forEach(p => S.habits.push(Object.assign({
+    id:uid(), target:1, unit:'', reminder:'', note:'', created:TODAY(), archived:false
+  }, p)));
+  save(true); render(); toast('Starter habits added — edit or delete freely', 'ok');
+}
+function afterLog(h,k){
+  const list = todayList();
+  const before = window.__allDone;
+  const all = list.length > 0 && list.every(x => isDone(x, TODAY()));
+  render();
+  if(all && !before && k === TODAY() && S.settings.confetti){ confetti(); toast('Perfect day! Every habit done 🎉','ok'); }
+  window.__allDone = all;
+}
+function moreSheet(){
+  modal('<div class="mh"><h3>More</h3><button class="x" data-act="close">'+ic('x')+'</button></div>'
+    + '<div class="mb" style="padding-bottom:8px">'
+    + ['journal','focus','settings'].map(id => { const v = VIEWS.find(x => x.id === id);
+        return '<button class="btn" style="width:100%;justify-content:flex-start;margin-bottom:9px;padding:14px 16px" data-act="go" data-v="'+id+'">'+ic(v.icon)+'<span style="font-size:15px">'+v.name+'</span></button>'; }).join('')
+    + '<button class="btn" style="width:100%;justify-content:flex-start;padding:14px 16px" data-act="exportData">'+ic('down')+'<span style="font-size:15px">Export backup</span></button>'
+    + '</div>');
+}
+
+/* =========================================================
+   EVENTS
+   ========================================================= */
+let resetScroll = false;
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-act]');
+  if(!btn){
+    if(e.target.dataset && e.target.dataset.ov){ closeModal(); return; }
+    if(ui.menu){ ui.menu = null; render(); }
+    return;
+  }
+  const a = btn.dataset.act, id = btn.dataset.id, k = btn.dataset.k;
+  const H = () => S.habits.find(x => x.id === id);
+  if(ui.menu && a !== 'menu') ui.menu = null;
+
+  switch(a){
+    case 'go': resetScroll = true; closeModal(); go(btn.dataset.v); break;
+    case 'more': moreSheet(); break;
+    case 'close': closeModal(); break;
+    case 'askYes': { const cb = askCb; closeModal(); if(cb) cb(); break; }
+
+    /* habits */
+    case 'toggle': { const h = H(); setLog(h, k, isDone(h,k) ? 0 : goalOf(h)); afterLog(h,k); break; }
+    case 'inc': { const h = H(); setLog(h, k, getLog(h,k)+1); afterLog(h,k); break; }
+    case 'dec': { const h = H(); setLog(h, k, Math.max(0, getLog(h,k)-1)); afterLog(h,k); break; }
+    case 'toggleDay': { const h = H(); setLog(h, k, isDone(h,k) ? 0 : goalOf(h)); save(true); openHabit(id); render(); break; }
+    case 'openHabit': openHabit(id); break;
+    case 'newHabit': editHabit(null); break;
+    case 'editHabit': editHabit(id); break;
+    case 'menu': ui.menu = ui.menu === id ? null : id; render(); break;
+    case 'move': {
+      const i = S.habits.findIndex(x => x.id === id), j = i + (+btn.dataset.d);
+      if(i < 0 || j < 0 || j >= S.habits.length) break;
+      const tmp = S.habits[i]; S.habits[i] = S.habits[j]; S.habits[j] = tmp;
+      ui.menu = id; save(true); render(); break; }
+    case 'cat': ui.habitCat = btn.dataset.c; render(); break;
+    case 'toggleArchived': ui.showArchived = !ui.showArchived; ui.habitCat = 'all'; render(); break;
+    case 'archive': { const h = H(); h.archived = !h.archived; save(true); closeModal(); render(); toast(h.archived ? 'Archived' : 'Restored', 'ok'); break; }
+    case 'delHabit': { const h = H(); if(!h) break;
+      ask('Delete “'+esc(h.name)+'”?', 'This removes the habit and all '+totalDone(h)+' logged completions. Archiving keeps the history instead.', 'Delete forever', () => {
+        S.habits = S.habits.filter(x => x.id !== id); delete S.logs[id]; save(true); render(); toast('Habit deleted');
+      }); break; }
+    case 'saveHabit': saveHabit(); break;
+    case 'femoji': pullHabitForm(); draft.icon = btn.dataset.e; paintHabitForm(); break;
+    case 'fcolor': pullHabitForm(); draft.color = btn.dataset.c; paintHabitForm(); break;
+    case 'ftype': pullHabitForm(); draft.type = btn.dataset.t; if(draft.type==='count' && draft.target<2) draft.target = 8; paintHabitForm(); break;
+    case 'ffreq': pullHabitForm(); draft.freq.t = btn.dataset.t; if(!draft.freq.days) draft.freq.days = [1,2,3,4,5]; paintHabitForm(); break;
+    case 'fday': { pullHabitForm(); const d = +btn.dataset.d, arr = draft.freq.days || [];
+      draft.freq.days = arr.includes(d) ? arr.filter(x => x !== d) : arr.concat(d); paintHabitForm(); break; }
+    case 'seed': seed(); break;
+
+    /* tasks */
+    case 'addTask': addTaskFromInput(); break;
+    case 'newTask': resetScroll = true; go('tasks'); setTimeout(() => { const i = el('qaTitle'); if(i) i.focus(); }, 80); break;
+    case 'tdone': { const t = S.tasks.find(x => x.id === id); t.done = !t.done; t.doneAt = t.done ? TODAY() : '';
+      save(true); render(); if(t.done) toast('Nice — task done', 'ok'); break; }
+    case 'delTask': { const t = S.tasks.find(x => x.id === id); if(!t) break;
+      S.tasks = S.tasks.filter(x => x.id !== id); save(true); closeModal(); render(); toast('Task deleted'); break; }
+    case 'editTask': editTask(id); break;
+    case 'saveTask': saveTask(); break;
+    case 'tfilter': ui.taskFilter = btn.dataset.f; render(); break;
+    case 'clearDone': ask('Clear completed tasks?', 'This permanently removes '+S.tasks.filter(t=>t.done).length+' completed tasks.', 'Clear them', () => {
+      S.tasks = S.tasks.filter(t => !t.done); save(true); render(); toast('Cleared', 'ok'); }); break;
+    case 'epri': pullTaskForm(); tdraft.pri = +btn.dataset.p; paintTaskForm(); break;
+    case 'subAdd': pullTaskForm(); tdraft.sub.push({t:'',d:false}); paintTaskForm();
+      setTimeout(() => { const l = document.querySelectorAll('[data-sub]'); if(l.length) l[l.length-1].focus(); }, 50); break;
+    case 'subDel': pullTaskForm(); tdraft.sub.splice(+btn.dataset.i,1); paintTaskForm(); break;
+    case 'subToggle': pullTaskForm(); tdraft.sub[+btn.dataset.i].d = !tdraft.sub[+btn.dataset.i].d; paintTaskForm(); break;
+
+    /* stats */
+    case 'range': ui.statRange = +btn.dataset.r; render(); break;
+
+    /* journal */
+    case 'jprev': jSave(); ui.jDate = dk(addD(pd(ui.jDate),-1)); render(); break;
+    case 'jnext': { jSave(); const n = addD(pd(ui.jDate),1); if(n <= today0()) ui.jDate = dk(n); render(); break; }
+    case 'jgo': ui.jDate = k || btn.dataset.k; render(); el('content').scrollTop = 0; break;
+    case 'mood': { jSave(); const cur = S.notes[ui.jDate] || {text:'',mood:''};
+      cur.mood = btn.dataset.m === cur.mood ? '' : btn.dataset.m;
+      S.notes[ui.jDate] = cur; if(!cur.text && !cur.mood) delete S.notes[ui.jDate];
+      save(true); render(); break; }
+    case 'jsave': jSave(); render(); toast('Journal saved', 'ok'); break;
+
+    /* focus */
+    case 'preset': { const p = +btn.dataset.p; T.break = btn.dataset.b === '1'; T.preset = T.break ? T.preset : p;
+      T.total = p*60; T.left = p*60; T.running = false; clearInterval(T.tick); render(); break; }
+    case 'tToggle': T.running ? pauseTimer() : startTimer(); break;
+    case 'tReset': resetTimer(); break;
+    case 'tSkip': finishTimer(false); break;
+
+    /* settings */
+    case 'theme': S.settings.theme = btn.dataset.t; save(true); applyTheme(); render(); break;
+    case 'accent': S.settings.accent = btn.dataset.c; save(true); applyTheme(); render(); break;
+    case 'toggleSet': S.settings[btn.dataset.s] = !S.settings[btn.dataset.s]; save(true); render(); break;
+    case 'notify': {
+      if(S.settings.notify){ S.settings.notify = false; save(true); render(); break; }
+      if(!('Notification' in window)){ toast('This browser has no notifications', 'err'); break; }
+      Notification.requestPermission().then(p => {
+        S.settings.notify = (p === 'granted'); save(true); render();
+        toast(p === 'granted' ? 'Reminders on (while the app is open)' : 'Permission denied', p === 'granted' ? 'ok' : 'err');
+      });
+      break; }
+    case 'dismissNotice': bootNotice = ''; render(); break;
+    case 'exportData': exportData(); break;
+    case 'importData': importData(); break;
+    case 'restoreBackup': {
+      const bak = DB.getItem(BAKKEY);
+      if(!bak){ toast('No automatic backup stored yet', 'err'); break; }
+      const when = DB.getItem(BAKKEY + '.date') || 'an earlier day';
+      ask('Restore the automatic backup?', 'This replaces everything currently in the app with the copy saved on ' + esc(when) + '. Anything logged since then is lost — export a backup first if you are unsure.', 'Restore it', () => {
+        try{
+          S = normalize(JSON.parse(bak));
+          lastBackupDay = '';                       // let today write a fresh snapshot
+          save(true); applyTheme(); resetScroll = true; render();
+          toast('Restored the backup from ' + when, 'ok');
+        }catch(e){ toast('That backup could not be read', 'err'); }
+      });
+      break; }
+    case 'copyData': copyJSON(); break;
+    case 'resetData': ask('Erase everything?', 'All habits, logs, tasks, journal entries and focus sessions on this device will be deleted. This cannot be undone — export a backup first.', 'Erase everything', () => {
+      S = structuredClone(DEFAULTS);
+      [UIKEY, BAKKEY, BAKKEY + '.date', KEY + '.corrupt'].forEach(k => { try{ DB.removeItem(k); }catch(e){} });
+      lastBackupDay = ''; storageError = false;
+      Object.assign(ui, { taskFilter:'today', habitCat:'all', showArchived:false, jDate:TODAY(), statRange:30, menu:null });
+      save(true); applyTheme(); resetScroll = true; go('today'); toast('All data erased'); }); break;
+  }
+});
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape'){ if(el('modalHost').innerHTML){ closeModal(); } return; }
+  const t = e.target, typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT');
+  if(typing){
+    if(e.key === 'Enter' && t.id === 'qaTitle'){ e.preventDefault(); addTaskFromInput(); }
+    if(e.key === 'Enter' && (t.id === 'fName' || t.id === 'fUnit' || t.id === 'fTarget')){ e.preventDefault(); saveHabit(); }
+    if(e.key === 'Enter' && (t.id === 'eTitle' || t.id === 'eTag')){ e.preventDefault(); saveTask(); }
+    if((e.key === 's') && (e.metaKey || e.ctrlKey) && t.id === 'jText'){ e.preventDefault(); jSave(); toast('Saved','ok'); }
+    return;
+  }
+  if(e.metaKey || e.ctrlKey || e.altKey) return;
+  const n = parseInt(e.key);
+  if(n >= 1 && n <= VIEWS.length){ resetScroll = true; go(VIEWS[n-1].id); return; }
+  if(e.key.toLowerCase() === 'h'){ e.preventDefault(); editHabit(null); }
+  if(e.key.toLowerCase() === 't'){ e.preventDefault(); resetScroll = true; go('tasks'); setTimeout(() => { const i = el('qaTitle'); if(i) i.focus(); }, 80); }
+});
+document.addEventListener('input', e => {
+  if(e.target.id === 'jText'){ clearTimeout(window.__jt); window.__jt = setTimeout(jSave, 700); }
+  if(e.target.id === 'sName'){ S.settings.name = e.target.value; save(); }
+  if(e.target.id === 'sWeek'){ S.settings.weekStart = +e.target.value; save(true); render(); }
+  if(e.target.id === 'tHabit'){ T.habit = e.target.value; }
+});
+/* Commit everything the moment the app might go away. Phones frequently kill a
+   backgrounded tab without ever firing beforeunload, so visibilitychange and
+   pagehide are the ones that actually matter on mobile. */
+function commit(){ try{ jSave(); flush(); save(true); saveSession(true); }catch(e){} }
+window.addEventListener('beforeunload', commit);
+window.addEventListener('pagehide', commit);
+document.addEventListener('visibilitychange', () => { if(document.hidden) commit(); });
+window.addEventListener('blur', commit);
+
+/* Two windows open on the same machine? Keep them in step. */
+window.addEventListener('storage', e => {
+  if(!e || e.key !== KEY || !e.newValue) return;
+  try{
+    const incoming = normalize(JSON.parse(e.newValue));
+    if(JSON.stringify(incoming) === JSON.stringify(S)) return;
+    S = incoming; applyTheme(); render();
+    toast('Updated from another window', 'ok');
+  }catch(err){}
+});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if(S.settings.theme === 'system'){ applyTheme(); render(); } });
+
+/* reminders + day rollover */
+let lastDay = TODAY(), fired = {};
+setInterval(() => {
+  if(TODAY() !== lastDay){ lastDay = TODAY(); fired = {}; ui.jDate = TODAY(); window.__allDone = false; render(); }
+  if(!S.settings.notify || !('Notification' in window) || Notification.permission !== 'granted') return;
+  const now = new Date(), hm = pad(now.getHours())+':'+pad(now.getMinutes());
+  activeHabits().forEach(h => {
+    const key = h.id + hm;
+    if(h.reminder === hm && !fired[key] && dueToday(h) && !isDone(h, TODAY())){
+      fired[key] = 1;
+      try{ new Notification('Momentum · ' + h.name, { body: (h.icon||'✅') + '  ' + freqLabel(h) + ' — time to check it off.', tag: h.id }); }catch(e){}
+    }
+  });
+}, 20000);
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+(function boot(){
+  const ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237C5CFF'/%3E%3Cstop offset='1' stop-color='%234DA6FF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cpath d='M27 51l15 15 31-32' stroke='white' stroke-width='11' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E";
+  el('favicon').href = ICON;
+  const man = { name:'Momentum — Habit Tracker', short_name:'Momentum', display:'standalone', orientation:'portrait',
+    background_color:'#0A0C11', theme_color:'#0A0C11', start_url:'.', scope:'.',
+    icons:[{ src:ICON, sizes:'any', type:'image/svg+xml', purpose:'any' }] };
+  try{ el('manifest').href = 'data:application/json,' + encodeURIComponent(JSON.stringify(man)); }catch(e){}
+
+  applyTheme();
+  restoreSession();
+  const list = todayList();
+  window.__allDone = list.length > 0 && list.every(x => isDone(x, TODAY()));
+  render();
+
+  /* a focus session that ran out while the app was closed still counts */
+  if(T.finishedWhileAway){
+    T.finishedWhileAway = false;
+    finishTimer(false);
+    setTimeout(() => toast('Your focus session finished while the app was closed — logged', 'ok'), 900);
+  }
+  if(bootNotice){
+    setTimeout(() => toast(DB.ok ? 'Check the notice at the top' : 'Not saving — see the notice at the top', 'err'), 600);
+  } else if(!S.habits.length && !S.tasks.length){
+    setTimeout(() => toast('Welcome to Momentum — press H to add your first habit', 'ok'), 700);
+  }
+  /* belt and braces: a periodic commit means even a hard kill loses nothing */
+  setInterval(() => { flush(); saveSession(true); }, 15000);
+})();
+</script>
+</body>
+</html>

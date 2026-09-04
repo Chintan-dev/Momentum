@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Momentum — Habit Tracker</title>
 <meta name="description" content="Premium offline habit &amp; task tracker. All data stays on your device.">
 <meta name="theme-color" content="#0A0C11">
@@ -35,7 +35,10 @@ html[data-theme="light"]{
   --sh2:0 3px 10px rgba(16,24,40,.07);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%}
+html,body{height:100%;touch-action:pan-x pan-y}
+/* Belt and braces for the double-tap gesture on iOS, which ignores
+   user-scalable=no but does honour touch-action. */
+#app,.ov,#toast,.fab,.tabbar,.content,.mb,.modal{touch-action:pan-x pan-y}
 body{
   margin:0;background:var(--bg);color:var(--text);
   font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
@@ -1564,7 +1567,7 @@ function paintTaskForm(){
   const subs = t.sub.map((s,i) =>
     '<div style="display:flex;align-items:center;gap:9px;margin-bottom:7px">'
     + '<button class="cb '+(s.d?'on':'')+'" data-act="subToggle" data-i="'+i+'">'+ic('check',3.4)+'</button>'
-    + '<input class="inp" data-sub="'+i+'" value="'+esc(s.t)+'" style="padding:7px 11px;font-size:13.5px">'
+    + '<input class="inp" data-sub="'+i+'" value="'+esc(s.t)+'" style="padding:7px 11px;font-size:16px">'
     + '<button class="btn icon sm ghost" data-act="subDel" data-i="'+i+'">'+ic('x')+'</button></div>').join('');
   modal('<div class="mh"><h3>Edit task</h3><button class="x" data-act="close">'+ic('x')+'</button></div>'
     + '<div class="mb">'
@@ -1879,7 +1882,7 @@ function viewSettings(){
       + '<button class="btn" data-act="importData">'+ic('up')+'Import backup</button>'
       + '<button class="btn" data-act="copyData">'+ic('copy')+'Copy JSON</button>'
       + '<button class="btn danger" data-act="resetData">'+ic('trash')+'Erase everything</button></div>'
-    + '<input type="file" id="fileIn" accept="application/json,.json" style="display:none">'
+    + '<input type="file" id="fileIn" style="font-size:16px" accept="application/json,.json" style="display:none">'
     + '<div class="srow" style="margin-top:12px"><div class="t"><b>Habits</b></div><b>'+S.habits.length+'</b></div>'
     + '<div class="srow"><div class="t"><b>Logged completions</b></div><b>'+Object.values(S.logs).reduce((a,o)=>a+Object.keys(o).length,0)+'</b></div>'
     + '<div class="srow"><div class="t"><b>Tasks</b></div><b>'+S.tasks.length+'</b></div>'
@@ -2085,6 +2088,21 @@ document.addEventListener('pointerdown', e => {
   t.appendChild(d);
   setTimeout(() => { d.remove(); if(!t.querySelector('.rip')) t.classList.remove('ripHost'); }, 520);
 }, { passive:true });
+
+/* ---------- no accidental zoom on a phone ---------- */
+/* Three separate things zoom a mobile page: focusing an input under 16px
+   (fixed in CSS), the double-tap gesture (fixed by touch-action), and pinch.
+   iOS Safari ignores user-scalable=no, so pinch has to be refused here.
+   Note this trades away the reader's own ability to zoom in — flip
+   LOCK_ZOOM to false to hand it back. */
+const LOCK_ZOOM = true;
+if(LOCK_ZOOM && mqCoarse.matches){
+  /* WebKit only. Blink and Gecko are already covered by the meta tag and by
+     touch-action:pan-x pan-y on the root, which is why there is no touchmove
+     handler here — a non-passive one would put every scroll on the slow path. */
+  ['gesturestart','gesturechange','gestureend'].forEach(t =>
+    document.addEventListener(t, e => e.preventDefault(), { passive:false }));
+}
 
 /* ---------- swipe between the main views ---------- */
 /* Left/right across the page moves through the tab bar, the way every other

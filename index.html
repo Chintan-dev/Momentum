@@ -229,7 +229,8 @@ html[data-theme="light"] .chip{background:var(--card2)}
 .menu hr{border:none;border-top:1px solid var(--line);margin:4px 6px}
 
 /* ================= TASKS ================= */
-.tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:4px;margin-bottom:16px;overflow-x:auto}
+.tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:4px;margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
 .tabs button{padding:7px 14px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--muted);transition:.16s;white-space:nowrap}
 .tabs button:hover{color:var(--text)}
 .tabs button.on{background:var(--card3);color:var(--text);box-shadow:var(--sh2)}
@@ -273,7 +274,7 @@ html[data-theme="light"] .pill.due.today{color:#0d8a63}
 .tile .tr{position:absolute;top:14px;right:14px;font-size:11px;font-weight:700;padding:2px 7px;border-radius:99px}
 .tr.up{background:rgba(51,214,159,.15);color:#5ee3b6}
 .tr.dn{background:rgba(255,92,122,.15);color:#ff8ca2}
-.hm{display:flex;gap:3px;overflow-x:auto;padding:4px 0 8px}
+.hm{display:flex;gap:3px;overflow-x:auto;padding:4px 0 8px;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
 .hm .col{display:flex;flex-direction:column;gap:3px}
 .hm .cell{width:13px;height:13px;border-radius:3.5px;background:var(--card3);transition:.15s;cursor:default}
 .hm .cell:hover{outline:1.5px solid var(--line2);transform:scale(1.2)}
@@ -377,47 +378,248 @@ kbd{background:var(--card3);border:1px solid var(--line2);border-bottom-width:2p
 .mini{font-size:12.5px;color:var(--muted)}
 a{color:var(--accent2)}
 
+/* ================= INTERACTION / FEEDBACK ================= */
+.btn,.tick,.cb,.hico,.hmid,.picker button,.swatch,.moods button,.presets button,
+.days button,.seg button,.tabs button,.counter button,.nav button,.tabbar button,.x,.fab{
+  -webkit-user-select:none;user-select:none;touch-action:manipulation;
+}
+.btn:active,.picker button:active,.presets button:active,.days button:active,
+.moods button:active,.seg button:active,.tabs button:active{transform:scale(.96)}
+
+/* ripple — injected on pointerdown, removes itself */
+.ripHost{position:relative;overflow:hidden}
+.rip{
+  position:absolute;border-radius:50%;pointer-events:none;transform:scale(0);
+  background:currentColor;opacity:.28;animation:rip .5s var(--ease) forwards;
+}
+@keyframes rip{to{transform:scale(2.4);opacity:0}}
+
+/* completion celebration — plays in place, before the re-render */
+.tick,.cb{position:relative}
+@keyframes tickPop{0%{transform:scale(1)}36%{transform:scale(1.34)}68%{transform:scale(.92)}100%{transform:scale(1)}}
+.tick.pop,.cb.pop{animation:tickPop .4s var(--ease)}
+.tick.pop::after,.cb.pop::after{
+  content:"";position:absolute;inset:-7px;border-radius:50%;
+  border:2px solid var(--hc,var(--good));animation:tickRing .55s var(--ease) forwards;
+}
+@keyframes tickRing{0%{opacity:.8;transform:scale(.7)}100%{opacity:0;transform:scale(1.55)}}
+@keyframes bump{0%{transform:scale(1)}42%{transform:scale(1.24)}100%{transform:scale(1)}}
+.counter .v.bump{animation:bump .28s var(--ease);color:var(--hc,var(--accent))}
+
+/* rows arrive in sequence instead of all at once */
+@keyframes rowIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+@keyframes barGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.view .stagger>*{animation:rowIn .34s var(--ease) both}
+.view .stagger>*:nth-child(1){animation-delay:.02s}
+.view .stagger>*:nth-child(2){animation-delay:.05s}
+.view .stagger>*:nth-child(3){animation-delay:.08s}
+.view .stagger>*:nth-child(4){animation-delay:.11s}
+.view .stagger>*:nth-child(5){animation-delay:.14s}
+.view .stagger>*:nth-child(6){animation-delay:.17s}
+.view .stagger>*:nth-child(7){animation-delay:.2s}
+.view .stagger>*:nth-child(8){animation-delay:.23s}
+.view .stagger>*:nth-child(n+9){animation-delay:.26s}
+
+/* swipe-to-act on task rows */
+.tswipe{position:relative;margin-bottom:8px;border-radius:var(--r2)}
+.tsback{
+  position:absolute;inset:0;border-radius:var(--r2);display:flex;align-items:center;
+  justify-content:space-between;padding:0 18px;font-size:12.5px;font-weight:700;
+  opacity:0;transition:opacity .14s;pointer-events:none;
+  background:linear-gradient(90deg,rgba(51,214,159,.2),transparent 38%,transparent 62%,rgba(255,92,122,.2));
+}
+.tsback .l{color:var(--good)}
+.tsback .r{color:var(--bad)}
+.tswipe.sw .tsback{opacity:1}
+.tswipe .trow{margin-bottom:0;will-change:transform}
+.tswipe.sw .trow{transition:none}
+.tswipe.snap .trow{transition:transform .22s var(--ease)}
+
+/* view slides in the direction you swiped */
+@keyframes slideL{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
+@keyframes slideR{from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:none}}
+.view.fromR{animation:slideL .28s var(--ease)}
+.view.fromL{animation:slideR .28s var(--ease)}
+
+/* a scrollable area that has more below says so */
+.mb{position:relative}
+.mb.more::after{
+  content:"";position:sticky;bottom:-20px;left:0;display:block;height:34px;margin:-34px -22px -20px;
+  background:linear-gradient(transparent,var(--bg2));pointer-events:none;
+}
+
 /* ================= RESPONSIVE ================= */
+/* Coarse pointers get real tap targets regardless of screen width. */
+@media (pointer:coarse){
+  .tick{width:40px;height:40px;flex:0 0 40px}
+  .tick svg{width:20px;height:20px}
+  .counter button{width:40px;height:40px;font-size:17px}
+  .counter .v{min-width:60px;font-size:13.5px}
+  .counter{padding:2px;border-radius:13px}
+  .cb{width:24px;height:24px;flex:0 0 24px}
+  .cb,.switch,.swatch,.x{position:relative}
+  .cb::before,.tick::before,.switch::before,.swatch::before,.x::before{
+    content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:44px;height:44px;border-radius:50%;
+  }
+  .btn.sm{padding:9px 13px}
+  .btn.icon.sm{width:36px;height:36px;padding:7px}
+}
+
 @media (max-width:900px){
   .sidebar{display:none}
-  .content{padding:16px 15px calc(96px + var(--sab))}
-  .topbar{padding:10px 15px;padding-top:calc(10px + var(--sat))}
+  .content{padding:14px 14px calc(96px + var(--sab))}
+  .topbar{padding:10px 14px;padding-top:calc(10px + var(--sat));min-height:56px}
   .topbar h1{font-size:17.5px}
-  .hero{flex-direction:column;align-items:stretch;gap:18px;padding:20px;text-align:center}
-  .hero .ring{margin:0 auto}
-  .hero .hi h2{font-size:21px}
-  .chips{justify-content:center}
+  .topbar .sub{font-size:12px}
+
+  /* The hero used to eat 37% of a phone screen before a single habit showed.
+     Back to a row, smaller ring, so the list starts above the fold. */
+  .hero{gap:16px;padding:16px;border-radius:20px;margin-bottom:16px;align-items:center}
+  .hero::after{width:150px;height:150px;right:-46px;top:-52px}
+  .hero .ring{flex:0 0 84px;width:84px;height:84px;margin:0}
+  .hero .ring svg{width:84px;height:84px}
+  .hero .ring .rt b{font-size:20px;letter-spacing:-.6px}
+  .hero .ring .rt span{font-size:8.5px;margin-top:1px}
+  .hero .hi h2{font-size:18.5px;margin-bottom:3px}
+  .hero .hi p{font-size:13px;margin-bottom:10px}
+  .chip{font-size:11.5px;padding:5px 9px}
+
   .two{grid-template-columns:1fr}
   .hcards{grid-template-columns:1fr}
   .lb .n{width:96px;flex:0 0 96px;font-size:12.5px}
-  .modal{max-width:100%;max-height:92dvh;border-radius:24px 24px 0 0;padding-bottom:var(--sab)}
+  .tiles{grid-template-columns:repeat(auto-fit,minmax(142px,1fr));gap:10px}
+  .tile{padding:13px}
+  .tile .ic{width:28px;height:28px;margin-bottom:8px;font-size:14px}
+  .tile b{font-size:22px}
+
+  /* The task composer: title on its own line, controls beneath it.
+     The date picker used to squeeze the title field down to ~104px. */
+  .addrow{flex-wrap:wrap;padding:10px 12px;gap:8px}
+  .addrow input[type=text]{flex:1 1 100%;width:100%;font-size:16px;padding:2px 0}
+  .addrow input[type=date]{flex:1 1 auto;width:auto;min-width:0}
+  .addrow .btn{flex:0 0 auto}
+
+  /* iOS zooms the whole page on focus of any input under 16px */
+  .inp,.addrow input,textarea.inp,select.inp{font-size:16px}
+  .field label{font-size:12px}
+  .row{flex-wrap:wrap}
+  .row>*{flex:1 1 100%}
+  .row.keep>*{flex:1 1 0}
+
+  .presets{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+  .presets button{padding:10px 4px;font-size:12.5px}
+  .presets button.brk{grid-column:1/-1}
+  .timer .ring{width:210px;height:210px;flex:0 0 210px}
+  .timer .ring svg{width:210px;height:210px}
+  .timer .rt b{font-size:42px}
+
+  /* bottom sheet */
   .ov{padding:0;align-items:flex-end}
-  @keyframes up{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+  .modal{
+    max-width:100%;max-height:92dvh;border-radius:24px 24px 0 0;
+    padding-bottom:var(--sab);animation:sheetUp .3s var(--ease);
+  }
+  @keyframes sheetUp{from{opacity:.4;transform:translateY(100%)}to{opacity:1;transform:none}}
+  .modal::before{
+    content:"";display:block;width:38px;height:4px;border-radius:99px;
+    background:var(--line2);margin:9px auto 0;flex:0 0 auto;
+  }
+  .mh{padding:12px 18px 15px}
+  .mb{padding:16px 18px}
+  .mf{padding:14px 18px calc(14px + var(--sab));gap:9px}
+  .mb.more::after{margin:-34px -18px -16px}
+  /* 32 emoji in a 5-row block pushed every real field off screen */
+  .picker.emoji{
+    display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,1fr);
+    gap:8px;overflow-x:auto;padding:2px 2px 8px;scroll-snap-type:x proximity;
+    -webkit-overflow-scrolling:touch;
+  }
+  .picker.emoji button{flex:0 0 42px;width:42px;height:42px;scroll-snap-align:start}
+
   .tabbar{
     display:flex;position:fixed;left:0;right:0;bottom:0;z-index:100;
     background:rgba(10,12,17,.86);backdrop-filter:blur(20px);border-top:1px solid var(--line);
-    padding:7px 6px calc(7px + var(--sab));
+    padding:6px 6px calc(6px + var(--sab));
   }
   html[data-theme="light"] .tabbar{background:rgba(255,255,255,.9)}
-  .tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;color:var(--muted);font-size:10.5px;font-weight:600;border-radius:12px;transition:.16s;position:relative}
-  .tabbar button svg{width:21px;height:21px}
-  .tabbar button.on{color:var(--accent)}
-  .tabbar button .badge{position:absolute;top:2px;right:50%;margin-right:-20px;background:var(--bad);color:#fff;font-size:9.5px;font-weight:700;padding:0 5px;border-radius:99px;line-height:15px;min-width:16px}
-  .fab{
-    display:grid;place-items:center;position:fixed;right:16px;bottom:calc(76px + var(--sab));z-index:99;
-    width:54px;height:54px;border-radius:18px;background:linear-gradient(135deg,var(--accent),var(--accent2));
-    box-shadow:0 10px 26px rgba(var(--accentRGB),.5);color:#fff;transition:.18s var(--ease);
+  .tabbar button{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px;
+    color:var(--muted);font-size:10.5px;font-weight:600;border-radius:12px;
+    transition:color .18s var(--ease);position:relative;min-height:48px;
   }
-  .fab:active{transform:scale(.92)}
+  .tabbar button svg{width:21px;height:21px;transition:transform .24s var(--ease)}
+  .tabbar button.on{color:var(--accent)}
+  .tabbar button.on svg{transform:translateY(-2px) scale(1.1)}
+  .tabbar button:active{background:var(--card2)}
+  .tabbar button::after{
+    content:"";position:absolute;inset:2px 6px;border-radius:13px;z-index:-1;
+    background:rgba(var(--accentRGB),.15);opacity:0;transform:scale(.8);
+    transition:opacity .22s var(--ease),transform .22s var(--ease);
+  }
+  .tabbar button.on::after{opacity:1;transform:scale(1)}
+  .tabbar button{isolation:isolate}
+  .tabbar button .badge{
+    position:absolute;top:3px;right:50%;margin-right:-21px;background:var(--bad);color:#fff;
+    font-size:9.5px;font-weight:700;padding:0 5px;border-radius:99px;line-height:15px;min-width:16px;
+  }
+  .fab{
+    display:grid;place-items:center;position:fixed;right:15px;bottom:calc(74px + var(--sab));z-index:99;
+    width:54px;height:54px;border-radius:18px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    box-shadow:0 10px 26px rgba(var(--accentRGB),.5);color:#fff;
+    transition:transform .18s var(--ease),opacity .18s var(--ease);
+  }
+  .fab:active{transform:scale(.9)}
+  .fab.gone{opacity:0;transform:scale(.6);pointer-events:none}
   .fab svg{width:25px;height:25px}
+  /* toasts used to sit on top of the tab bar and the FAB */
+  #toast{bottom:calc(138px + var(--sab));left:14px;right:14px;transform:none}
+  .toast{width:100%;justify-content:center;text-align:center}
   .hm .cell{width:11px;height:11px}
+  .hrow{gap:11px;padding:12px 13px}
+  .hico{width:42px;height:42px;flex:0 0 42px}
+  .sect-h h2{font-size:15px}
 }
-@media (max-width:400px){
-  .tile b{font-size:22px}
-  .hero .ring{flex:0 0 108px;width:108px;height:108px}
-  .hero .ring svg{width:108px;height:108px}
+
+@media (max-width:420px){
+  .content{padding:12px 11px calc(94px + var(--sab))}
+  .hero{padding:14px;gap:13px}
+  .hero .ring{flex:0 0 72px;width:72px;height:72px}
+  .hero .ring svg{width:72px;height:72px}
+  .hero .ring .rt b{font-size:17px}
+  .hero .hi h2{font-size:17px}
+  .hero .hi p{font-size:12.4px;margin-bottom:9px}
+  .chips{gap:6px}
+  .chip{font-size:11px;padding:4px 8px;gap:4px}
+  .tiles{grid-template-columns:1fr 1fr;gap:9px}
+  .tile b{font-size:20px}
+  .tile span{font-size:11px}
+  .hn{font-size:14px}
+  .hrow{padding:11px;gap:10px}
+  .hico{width:38px;height:38px;flex:0 0 38px;font-size:18px}
+  .tabbar button{font-size:9.8px}
+  .lb .n{width:82px;flex:0 0 82px;font-size:12px}
+  .timer .ring{width:184px;height:184px;flex:0 0 184px}
+  .timer .ring svg{width:184px;height:184px}
+  .timer .rt b{font-size:37px}
+  .moods button{width:42px;height:42px;font-size:21px}
 }
-@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+
+/* landscape phone: hero and timer must not swallow the whole screen */
+@media (max-width:900px) and (max-height:520px){
+  .hero{padding:12px}
+  .hero .ring{flex:0 0 64px;width:64px;height:64px}
+  .hero .ring svg{width:64px;height:64px}
+  .timer .ring{width:150px;height:150px;flex:0 0 150px}
+  .timer .ring svg{width:150px;height:150px}
+  .timer .rt b{font-size:30px}
+  .modal{max-height:96dvh}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+  .view .stagger>*{animation:none}
+}
 </style>
 </head>
 <body>
@@ -547,7 +749,7 @@ const UIKEY  = 'momentum.ui.v1';      // where you were: view, filters, running 
 const BAKKEY = 'momentum.v1.backup';  // yesterday's known-good copy
 const DEFAULTS = {
   habits: [], logs: {}, tasks: [], notes: {}, focus: [],
-  settings: { name:'', theme:'dark', accent:'violet', weekStart:1, notify:false, sound:true, confetti:true },
+  settings: { name:'', theme:'dark', accent:'violet', weekStart:1, notify:false, sound:true, confetti:true, haptics:true },
   meta: { created: Date.now(), v: 1 }
 };
 
@@ -899,16 +1101,25 @@ function render(){
     stats: viewStats, journal: viewJournal, focus: viewFocus, settings: viewSettings
   }[V]();
   const c = el('content'), sc = c.scrollTop;
-  c.innerHTML = '<div class="wrap view">' + storageBanner() + body + '</div>';
+  /* Only a real view change animates. Re-rendering after every tick used to
+     replay the fade, which made a one-tap toggle feel like a page reload. */
+  const arrived = V !== lastPainted;
+  c.innerHTML = '<div class="wrap' + (arrived ? ' view ' + slideDir : '') + '">' + storageBanner() + body + '</div>';
+  slideDir = '';
   c.scrollTop = resetScroll ? 0 : sc;
   resetScroll = false;
   if(V === 'focus') paintTimer();
+  paintFab();
+  if(arrived){ lastPainted = V; animateNumbers(); }
   saveSession();
 }
+let lastPainted = '';
 function topActions(){
-  if(V === 'habits') return '<button class="btn pri" data-act="newHabit">'+ic('plus')+'<span>New habit</span></button>';
-  if(V === 'tasks')  return '<button class="btn pri" data-act="newTask">'+ic('plus')+'<span>New task</span></button>';
-  if(V === 'today')  return '<button class="btn" data-act="newHabit">'+ic('plus')+'<span>Habit</span></button>';
+  /* the FAB covers add-actions on a phone; showing both is clutter */
+  const dup = isMobile() && FAB[V];
+  if(V === 'habits') return dup ? '' : '<button class="btn pri" data-act="newHabit">'+ic('plus')+'<span>New habit</span></button>';
+  if(V === 'tasks')  return dup ? '' : '<button class="btn pri" data-act="newTask">'+ic('plus')+'<span>New task</span></button>';
+  if(V === 'today')  return dup ? '' : '<button class="btn" data-act="newHabit">'+ic('plus')+'<span>Habit</span></button>';
   if(V === 'stats')  return '<button class="btn" data-act="exportData">'+ic('down')+'<span>Backup</span></button>';
   return '';
 }
@@ -995,7 +1206,7 @@ function viewToday(){
     : 'You have ' + (list.length-doneN) + ' habit' + (list.length-doneN===1?'':'s') + ' waiting. Start with the easiest.';
 
   let h = '<div class="hero">'
-    + '<div class="ring">' + ring(p,126,11) + '<div class="rt"><b>'+pctv+'%</b><span>Today</span></div></div>'
+    + '<div class="ring">' + ring(p,126,11) + '<div class="rt"><b data-count="'+pctv+'" data-suffix="%">'+pctv+'%</b><span>Today</span></div></div>'
     + '<div class="hi"><h2>'+greet+nm+'</h2><p>'+line+'</p><div class="chips">'
     + '<span class="chip">✅ <b>'+doneN+'/'+list.length+'</b> habits</span>'
     + '<span class="chip">'+(ps>0?'🔥':'🌱')+' <b>'+ps+'</b> perfect-day streak</span>'
@@ -1010,7 +1221,7 @@ function viewToday(){
        + '<button class="btn pri" data-act="newHabit">'+ic('plus')+'Create a habit</button>'
        + ' <button class="btn" data-act="seed">Load starter pack</button></div>';
   } else {
-    h += '<div class="grid">' + list.map(x => habitRow(x,k)).join('') + '</div>';
+    h += '<div class="grid stagger">' + list.map(x => habitRow(x,k)).join('') + '</div>';
   }
   h += '</div>';
 
@@ -1021,7 +1232,7 @@ function viewToday(){
   if(!tasksToday.length && !doneToday.length){
     h += '<div class="card empty" style="padding:26px"><div class="e">🗒️</div><h3>Nothing due today</h3><p>Add a task above — it will show up here on its due date.</p></div>';
   } else {
-    h += '<div>' + tasksToday.map(taskRow).join('') + doneToday.map(taskRow).join('') + '</div>';
+    h += '<div class="stagger">' + tasksToday.map(taskRow).join('') + doneToday.map(taskRow).join('') + '</div>';
   }
   h += '</div>';
 
@@ -1061,7 +1272,7 @@ function viewHabits(){
     return h;
   }
 
-  h += '<div class="hcards">' + list.map(x => habitCard(x,k)).join('') + '</div>';
+  h += '<div class="hcards stagger">' + list.map(x => habitCard(x,k)).join('') + '</div>';
   return h;
 }
 function habitCard(h,k){
@@ -1192,12 +1403,12 @@ function paintHabitForm(){
       return '<button data-act="fday" data-d="'+x+'" class="'+((f.days||[]).includes(x)?'on':'')+'">'+DAYN[x][0]+DAYN[x][1].toLowerCase()+'</button>'; }).join('') + '</div>';
   const body = '<div class="mb">'
     + '<div class="field"><label>Habit name</label><input class="inp" id="fName" placeholder="e.g. Read 20 pages" value="'+esc(d.name)+'" autocomplete="off"></div>'
-    + '<div class="field"><label>Icon</label><div class="picker">'+EMOJI.map(e => '<button data-act="femoji" data-e="'+e+'" class="'+(d.icon===e?'on':'')+'">'+e+'</button>').join('')+'</div></div>'
+    + '<div class="field"><label>Icon</label><div class="picker emoji">'+EMOJI.map(e => '<button data-act="femoji" data-e="'+e+'" class="'+(d.icon===e?'on':'')+'">'+e+'</button>').join('')+'</div></div>'
     + '<div class="field"><label>Colour</label><div class="picker">'+COLORS.map(c => '<button class="swatch '+(d.color===c.id?'on':'')+'" data-act="fcolor" data-c="'+c.id+'" style="background:'+c.hex+';color:'+c.hex+'"></button>').join('')+'</div></div>'
-    + '<div class="row"><div class="field"><label>Category</label><select class="inp" id="fCat">'+CATS.map(c => '<option '+(d.cat===c?'selected':'')+'>'+c+'</option>').join('')+'</select></div>'
-    + '<div class="field"><label>Reminder (while app is open)</label><input class="inp" type="time" id="fRem" value="'+esc(d.reminder||'')+'"></div></div>'
+    + '<div class="row keep"><div class="field"><label>Category</label><select class="inp" id="fCat">'+CATS.map(c => '<option '+(d.cat===c?'selected':'')+'>'+c+'</option>').join('')+'</select></div>'
+    + '<div class="field"><label>Reminder</label><input class="inp" type="time" id="fRem" value="'+esc(d.reminder||'')+'"></div></div>'
     + '<div class="field"><label>Type</label><div class="seg"><button data-act="ftype" data-t="check" class="'+(d.type==='check'?'on':'')+'">Simple check</button><button data-act="ftype" data-t="count" class="'+(d.type==='count'?'on':'')+'">Measurable</button></div></div>'
-    + (d.type==='count' ? '<div class="row"><div class="field"><label>Daily target</label><input class="inp" type="number" min="1" id="fTarget" value="'+(d.target||1)+'"></div><div class="field"><label>Unit</label><input class="inp" id="fUnit" placeholder="pages, glasses, km" value="'+esc(d.unit||'')+'"></div></div>' : '')
+    + (d.type==='count' ? '<div class="row keep"><div class="field"><label>Daily target</label><input class="inp" type="number" min="1" id="fTarget" value="'+(d.target||1)+'"></div><div class="field"><label>Unit</label><input class="inp" id="fUnit" placeholder="pages, glasses, km" value="'+esc(d.unit||'')+'"></div></div>' : '')
     + '<div class="field"><label>Frequency</label><div class="seg" style="margin-bottom:10px">'
       + '<button data-act="ffreq" data-t="daily" class="'+(f.t==='daily'?'on':'')+'">Every day</button>'
       + '<button data-act="ffreq" data-t="days" class="'+(f.t==='days'?'on':'')+'">Specific days</button>'
@@ -1246,9 +1457,10 @@ function saveHabit(){
 const PRI = { 1:{l:'High',c:'p1'}, 2:{l:'Medium',c:'p2'}, 3:{l:'Low',c:'p3'} };
 function quickAdd(){
   return '<div class="addrow">'
-    + '<input type="text" id="qaTitle" placeholder="Add a task…  try: Pay rent !1 #home tomorrow" autocomplete="off">'
-    + '<input type="date" class="inp" id="qaDue" style="width:auto;padding:7px 10px;font-size:13px" value="'+(V==='today'?TODAY():'')+'">'
-    + '<button class="btn pri sm" data-act="addTask">'+ic('plus')+'Add</button></div>';
+    + '<input type="text" id="qaTitle" placeholder="'+(isMobile()?'Add a task…':'Add a task…  try: Pay rent !1 #home tomorrow')+'" autocomplete="off" enterkeyhint="done">'
+    + '<input type="date" class="inp" id="qaDue" aria-label="Due date" style="padding:7px 10px" value="'+(V==='today'?TODAY():'')+'">'
+    + '<button class="btn pri sm" data-act="addTask">'+ic('plus')+'Add</button></div>'
+    + (isMobile() ? '<div class="mini" style="margin:-8px 2px 14px">Type <kbd>!1</kbd> for priority, <kbd>#tag</kbd>, or <kbd>tomorrow</kbd>.</div>' : '');
 }
 function parseTask(raw){
   let s = ' ' + raw + ' ', pri = 0, tag = '', due = '';
@@ -1285,11 +1497,13 @@ function taskRow(t){
   if((t.sub||[]).length) pills += '<span class="pill tag">'+subDone+'/'+t.sub.length+'</span>';
   if(t.due) pills += '<span class="pill due '+(overdue?'over':(isToday?'today':''))+'">'+(overdue?'⚠ ':'')+fmtDay(t.due)+'</span>';
   if(!t.done && t.pri) pills += '<span class="pill '+PRI[t.pri].c+'">'+PRI[t.pri].l+'</span>';
-  return '<div class="trow '+(t.done?'done':'')+'">'
+  return '<div class="tswipe" data-swipe="task" data-id="'+t.id+'">'
+    + '<div class="tsback"><span class="l">'+(t.done?'↩ Reopen':'✓ Done')+'</span><span class="r">Delete 🗑</span></div>'
+    + '<div class="trow '+(t.done?'done':'')+'">'
     + '<button class="cb '+(t.done?'on':'')+'" data-act="tdone" data-id="'+t.id+'" aria-label="Complete">'+ic('check',3.4)+'</button>'
     + '<div class="tt" data-act="editTask" data-id="'+t.id+'">'+esc(t.title)+'</div>'
     + pills
-    + '<button class="btn icon sm ghost" data-act="delTask" data-id="'+t.id+'" aria-label="Delete">'+ic('trash')+'</button></div>';
+    + '<button class="btn icon sm ghost" data-act="delTask" data-id="'+t.id+'" aria-label="Delete">'+ic('trash')+'</button></div></div>';
 }
 function viewTasks(){
   const k = TODAY(), open = S.tasks.filter(t => !t.done);
@@ -1324,18 +1538,18 @@ function viewTasks(){
     const groups = {};
     list.forEach(t => { (groups[t.due] = groups[t.due] || []).push(t); });
     h += Object.keys(groups).sort().map(d =>
-      '<div class="daygroup"><h3>'+fmtDay(d)+'</h3>'+groups[d].sort(sortP).map(taskRow).join('')+'</div>').join('');
+      '<div class="daygroup stagger"><h3>'+fmtDay(d)+'</h3>'+groups[d].sort(sortP).map(taskRow).join('')+'</div>').join('');
   } else if(ui.taskFilter === 'done'){
     const groups = {};
     list.forEach(t => { const d = t.doneAt || t.created || '—'; (groups[d] = groups[d] || []).push(t); });
     h += Object.keys(groups).sort().reverse().slice(0,30).map(d =>
-      '<div class="daygroup"><h3>'+(d==='—'?'Earlier':fmtDay(d))+'</h3>'+groups[d].map(taskRow).join('')+'</div>').join('');
+      '<div class="daygroup stagger"><h3>'+(d==='—'?'Earlier':fmtDay(d))+'</h3>'+groups[d].map(taskRow).join('')+'</div>').join('');
     h += '<div style="text-align:center;margin-top:6px"><button class="btn danger sm" data-act="clearDone">'+ic('trash')+'Clear completed</button></div>';
   } else {
     const over = list.filter(t => t.due && t.due < k).sort(sortP);
     const rest = list.filter(t => !(t.due && t.due < k)).sort((a,b) => (a.due||'9999') < (b.due||'9999') ? -1 : (a.due||'9999') > (b.due||'9999') ? 1 : sortP(a,b));
-    if(over.length) h += '<div class="daygroup"><h3 style="color:var(--bad)">Overdue</h3>'+over.map(taskRow).join('')+'</div>';
-    h += '<div class="daygroup">'+(over.length?'<h3>Scheduled</h3>':'')+rest.map(taskRow).join('')+'</div>';
+    if(over.length) h += '<div class="daygroup stagger"><h3 style="color:var(--bad)">Overdue</h3>'+over.map(taskRow).join('')+'</div>';
+    h += '<div class="daygroup stagger">'+(over.length?'<h3>Scheduled</h3>':'')+rest.map(taskRow).join('')+'</div>';
   }
   return h;
 }
@@ -1386,6 +1600,12 @@ function saveTask(){
 /* =========================================================
    VIEW: INSIGHTS
    ========================================================= */
+function chartEmpty(){
+  return '<div class="empty" style="padding:30px 18px"><div class="e">📈</div>'
+    + '<h3>Nothing charted yet</h3><p>Tick a habit off and this fills in from tomorrow. '
+    + 'The bar for each day shows how much of that day you closed out.</p>'
+    + '<button class="btn pri" data-act="go" data-v="today">Go to today</button></div>';
+}
 function barChart(data, accent){
   const W = 720, H = 168, pb = 24, pt = 12;
   const n = Math.max(1, data.length);
@@ -1397,7 +1617,7 @@ function barChart(data, accent){
     const bh = Math.max(v > 0 ? 4 : 2, v*(H-pb-pt));
     const x = i*(bw+gap), y = H - pb - bh;
     const fill = v >= 1 ? 'url(#gb)' : v > 0 ? 'rgba('+accent+','+(0.35+0.5*v).toFixed(2)+')' : 'var(--card3)';
-    bars += '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="'+Math.min(4,bw/2).toFixed(1)+'" fill="'+fill+'"><title>'+d.title+'</title></rect>';
+    bars += '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="'+Math.min(4,bw/2).toFixed(1)+'" fill="'+fill+'" style="transform-origin:0 '+H+'px;animation:barGrow .5s var(--ease) '+(i*0.008).toFixed(3)+'s both"><title>'+d.title+'</title></rect>';
     if(d.label) labels += '<text x="'+(x+bw/2).toFixed(1)+'" y="'+(H-7)+'" text-anchor="middle" font-size="10" fill="var(--muted)">'+d.label+'</text>';
   });
   return '<svg class="chart" viewBox="0 0 '+W+' '+H+'">'
@@ -1428,18 +1648,18 @@ function viewStats(){
   }
 
   let h = '<div class="tiles" style="margin-bottom:18px">'
-    + '<div class="tile"><div class="ic" style="background:rgba(var(--accentRGB),.16)">📊</div><b>'+Math.round(avg*100)+'%</b><span>Avg completion · '+R+'d</span>'
+    + '<div class="tile"><div class="ic" style="background:rgba(var(--accentRGB),.16)">📊</div><b data-count="'+Math.round(avg*100)+'" data-suffix="%">'+Math.round(avg*100)+'%</b><span>Avg completion · '+R+'d</span>'
       + (prevN ? '<span class="tr '+(delta>=0?'up':'dn')+'">'+(delta>=0?'+':'')+delta+'%</span>' : '') + '</div>'
-    + '<div class="tile"><div class="ic" style="background:rgba(255,176,32,.16)">🔥</div><b>'+perfectStreak()+'</b><span>Perfect-day streak</span></div>'
-    + '<div class="tile"><div class="ic" style="background:rgba(51,214,159,.16)">🏆</div><b>'+bestStreak+'</b><span>Longest streak'+(bestHabit?' · '+esc(bestHabit.name.slice(0,14)):'')+'</span></div>'
-    + '<div class="tile"><div class="ic" style="background:rgba(77,166,255,.16)">✅</div><b>'+totalDoneAll+'</b><span>Total completions</span></div>'
-    + '<div class="tile"><div class="ic" style="background:rgba(168,85,247,.16)">🌟</div><b>'+perfect+'</b><span>Perfect days · '+R+'d</span></div>'
-    + '<div class="tile"><div class="ic" style="background:rgba(45,212,191,.16)">🎯</div><b>'+acts.length+'</b><span>Active habits</span></div>'
+    + '<div class="tile"><div class="ic" style="background:rgba(255,176,32,.16)">🔥</div><b data-count="'+perfectStreak()+'">'+perfectStreak()+'</b><span>Perfect-day streak</span></div>'
+    + '<div class="tile"><div class="ic" style="background:rgba(51,214,159,.16)">🏆</div><b data-count="'+bestStreak+'">'+bestStreak+'</b><span>Longest streak'+(bestHabit?' · '+esc(bestHabit.name.slice(0,14)):'')+'</span></div>'
+    + '<div class="tile"><div class="ic" style="background:rgba(77,166,255,.16)">✅</div><b data-count="'+totalDoneAll+'">'+totalDoneAll+'</b><span>Total completions</span></div>'
+    + '<div class="tile"><div class="ic" style="background:rgba(168,85,247,.16)">🌟</div><b data-count="'+perfect+'">'+perfect+'</b><span>Perfect days · '+R+'d</span></div>'
+    + '<div class="tile"><div class="ic" style="background:rgba(45,212,191,.16)">🎯</div><b data-count="'+acts.length+'">'+acts.length+'</b><span>Active habits</span></div>'
     + '</div>';
 
   h += '<div class="sect"><div class="sect-h"><h2>Daily completion</h2><div class="sp"></div>'
     + '<div class="seg" style="width:auto">'+[7,30,90].map(r => '<button data-act="range" data-r="'+r+'" class="'+(R===r?'on':'')+'" style="padding:5px 12px;font-size:12.5px">'+r+'d</button>').join('')+'</div></div>'
-    + '<div class="card">'+barChart(data, A)+'</div></div>';
+    + '<div class="card">'+(scored ? barChart(data, A) : chartEmpty())+'</div></div>';
 
   h += '<div class="sect"><div class="sect-h"><h2>Consistency map</h2><span class="c">last 26 weeks</span></div>'
     + '<div class="card">'+heatmap(k => dayScore(k), 26, A)+'</div></div>';
@@ -1535,7 +1755,7 @@ function viewFocus(){
   let h = '<div class="card" style="margin-bottom:18px"><div class="timer">'
     + '<div class="ring" id="tRing"></div>'
     + '<div class="presets">'+[15,25,50,90].map(p => '<button data-act="preset" data-p="'+p+'" class="'+(T.preset===p&&!T.break?'on':'')+'">'+p+' min</button>').join('')
-      + '<button data-act="preset" data-p="5" class="'+(T.break?'on':'')+'" data-b="1">☕ 5 min break</button></div>'
+      + '<button data-act="preset" data-p="5" class="'+(T.break?'on':'')+' brk" data-b="1">☕ 5 min break</button></div>'
     + '<div style="display:flex;gap:10px;align-items:center">'
       + '<button class="btn icon" data-act="tReset" title="Reset">'+ic('reset')+'</button>'
       + '<button class="btn pri" data-act="tToggle" style="min-width:148px;padding:12px 22px">'+ic(T.running?'pause':'play')+(T.running?'Pause':'Start focus')+'</button>'
@@ -1630,6 +1850,8 @@ function viewSettings(){
       + '<button class="switch '+(s.confetti?'on':'')+'" data-act="toggleSet" data-s="confetti"></button></div>'
     + '<div class="srow"><div class="t"><b>Sound</b><span>Chime when a focus session ends</span></div>'
       + '<button class="switch '+(s.sound?'on':'')+'" data-act="toggleSet" data-s="sound"></button></div>'
+    + (mqCoarse.matches ? '<div class="srow"><div class="t"><b>Haptics</b><span>A short buzz when you tick something off or swipe a task</span></div>'
+      + '<button class="switch '+(s.haptics?'on':'')+'" data-act="toggleSet" data-s="haptics"></button></div>' : '')
     + '<div class="srow"><div class="t"><b>Habit reminders</b><span>Browser notifications while this page is open. Set a time on each habit.</span></div>'
       + '<button class="switch '+(s.notify?'on':'')+'" data-act="notify"></button></div></div>';
 
@@ -1676,6 +1898,7 @@ function viewSettings(){
    MODALS · TOASTS · CONFETTI
    ========================================================= */
 function modal(html, wide){
+  setTimeout(markScrollable, 40);
   el('modalHost').innerHTML = '<div class="ov" data-ov="1"><div class="modal'+(wide?' wide':'')+'">'+html+'</div></div>';
 }
 function closeModal(){ el('modalHost').innerHTML = ''; draft = null; tdraft = null; askCb = null; }
@@ -1799,9 +2022,29 @@ function afterLog(h,k){
   const before = window.__allDone;
   const all = list.length > 0 && list.every(x => isDone(x, TODAY()));
   render();
+  /* render() replaced the node we just tapped, so find its replacement and
+     play the confirmation on that — otherwise the animation never shows. */
+  flashControl(h, k);
   if(all && !before && k === TODAY() && S.settings.confetti){ confetti(); toast('Perfect day! Every habit done 🎉','ok'); }
   window.__allDone = all;
 }
+/* Re-find the control for a habit after a re-render and confirm the change on it. */
+function flashControl(h, k){
+  if(calm()) return;
+  const done = isDone(h, k);
+  const sel = '[data-id="' + h.id + '"][data-k="' + k + '"]';
+  const tick = document.querySelector('.tick' + sel);
+  if(tick){
+    if(done){ tick.classList.add('pop'); setTimeout(() => tick.classList.remove('pop'), 440); }
+    haptic(done ? 16 : 8);
+    return;
+  }
+  const btn = document.querySelector('.counter button' + sel);
+  const v = btn && btn.parentNode.querySelector('.v');
+  if(v){ v.classList.add('bump'); setTimeout(() => v.classList.remove('bump'), 300); }
+  haptic(done ? 16 : 6);
+}
+
 function moreSheet(){
   modal('<div class="mh"><h3>More</h3><button class="x" data-act="close">'+ic('x')+'</button></div>'
     + '<div class="mb" style="padding-bottom:8px">'
@@ -1810,6 +2053,226 @@ function moreSheet(){
     + '<button class="btn" style="width:100%;justify-content:flex-start;padding:14px 16px" data-act="exportData">'+ic('down')+'<span style="font-size:15px">Export backup</span></button>'
     + '</div>');
 }
+
+/* =========================================================
+   TOUCH, GESTURE & FEEDBACK
+   Everything below is additive polish: if a browser lacks the
+   API, the app behaves exactly as it did before.
+   ========================================================= */
+const mqCoarse  = matchMedia('(pointer:coarse)');
+const mqMobile  = matchMedia('(max-width:900px)');
+const mqReduced = matchMedia('(prefers-reduced-motion:reduce)');
+const isMobile  = () => mqMobile.matches;
+const calm      = () => mqReduced.matches;
+
+/* A short buzz confirms a tap landed even when your thumb covers the target. */
+function haptic(pattern){
+  if(!S.settings.haptics || !mqCoarse.matches) return;
+  try{ navigator.vibrate && navigator.vibrate(pattern); }catch(e){}
+}
+
+/* Ripple from the point you actually pressed, so the feedback tracks the finger. */
+document.addEventListener('pointerdown', e => {
+  if(calm()) return;
+  const t = e.target.closest('.btn:not([disabled]),.tabbar button,.seg button,.tabs button,.presets button,.menu button,.days button');
+  if(!t) return;
+  const r = t.getBoundingClientRect();
+  const size = Math.max(r.width, r.height);
+  const d = document.createElement('span');
+  d.className = 'rip';
+  d.style.cssText = 'width:'+size+'px;height:'+size+'px;left:'+(e.clientX-r.left-size/2)+'px;top:'+(e.clientY-r.top-size/2)+'px';
+  t.classList.add('ripHost');
+  t.appendChild(d);
+  setTimeout(() => { d.remove(); if(!t.querySelector('.rip')) t.classList.remove('ripHost'); }, 520);
+}, { passive:true });
+
+/* ---------- swipe between the main views ---------- */
+/* Left/right across the page moves through the tab bar, the way every other
+   phone app behaves. Anything that scrolls sideways itself is left alone. */
+let slideDir = '';
+const SWIPE_VIEWS = ['today','habits','tasks','stats'];
+let sw = null;
+
+function contentEl(){ return el('content'); }
+
+document.addEventListener('touchstart', e => {
+  if(!isMobile() || e.touches.length !== 1) return;
+  const t = e.target;
+  if(t.closest('.ov,.tabs,.hm,.picker,.chart,input,textarea,select,[data-swipe]')) return;
+  const c = contentEl(); if(!c || !c.contains(t)) return;
+  sw = { x:e.touches[0].clientX, y:e.touches[0].clientY, lock:null };
+}, { passive:true });
+
+document.addEventListener('touchmove', e => {
+  if(!sw || e.touches.length !== 1) return;
+  const dx = e.touches[0].clientX - sw.x, dy = e.touches[0].clientY - sw.y;
+  if(sw.lock === null && (Math.abs(dx) > 10 || Math.abs(dy) > 10)){
+    sw.lock = Math.abs(dx) > Math.abs(dy) * 1.4 ? 'x' : 'y';
+  }
+  if(sw.lock === 'x') sw.dx = dx;
+}, { passive:true });
+
+document.addEventListener('touchend', () => {
+  if(!sw || sw.lock !== 'x' || Math.abs(sw.dx || 0) < 62){ sw = null; return; }
+  const dir = sw.dx < 0 ? 1 : -1;
+  sw = null;
+  const i = SWIPE_VIEWS.indexOf(V);
+  if(i < 0) return;
+  const next = SWIPE_VIEWS[i + dir];
+  if(!next) return;
+  haptic(8);
+  slideDir = dir > 0 ? 'fromR' : 'fromL';
+  resetScroll = true;
+  go(next);
+}, { passive:true });
+
+/* ---------- swipe a task row to complete or delete ---------- */
+/* Right past the threshold completes it, left past the threshold deletes it —
+   the row follows your finger the whole way so the outcome is never a surprise. */
+(function taskSwipe(){
+  const THRESH = 88, MAX = 130;
+  let row = null, host = null, x0 = 0, y0 = 0, lock = null, dx = 0;
+
+  const reset = () => {
+    if(host){
+      host.classList.remove('sw'); host.classList.add('snap');
+      row.style.transform = '';
+      const h = host; setTimeout(() => h.classList.remove('snap'), 240);
+    }
+    row = host = null; lock = null; dx = 0;
+  };
+
+  document.addEventListener('touchstart', e => {
+    if(!mqCoarse.matches || e.touches.length !== 1) return;
+    const w = e.target.closest('[data-swipe="task"]');
+    if(!w || e.target.closest('button')) return;
+    host = w; row = w.querySelector('.trow');
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; lock = null; dx = 0;
+  }, { passive:true });
+
+  document.addEventListener('touchmove', e => {
+    if(!row || e.touches.length !== 1) return;
+    const nx = e.touches[0].clientX - x0, ny = e.touches[0].clientY - y0;
+    if(lock === null && (Math.abs(nx) > 8 || Math.abs(ny) > 8)){
+      lock = Math.abs(nx) > Math.abs(ny) * 1.3 ? 'x' : 'y';
+      if(lock === 'x') host.classList.add('sw');
+    }
+    if(lock !== 'x') return;
+    /* past the threshold it stiffens, so you can feel where the commit point is */
+    dx = Math.abs(nx) > THRESH ? Math.sign(nx) * (THRESH + (Math.abs(nx) - THRESH) * .35) : nx;
+    dx = clamp(dx, -MAX, MAX);
+    row.style.transform = 'translateX(' + dx.toFixed(1) + 'px)';
+    if(Math.abs(dx) >= THRESH && !host.dataset.armed){ host.dataset.armed = '1'; haptic(12); }
+    if(Math.abs(dx) < THRESH) delete host.dataset.armed;
+  }, { passive:true });
+
+  document.addEventListener('touchend', () => {
+    if(!row || lock !== 'x'){ reset(); return; }
+    const id = host.dataset.id, fired = Math.abs(dx) >= THRESH, right = dx > 0;
+    delete host.dataset.armed;
+    if(!fired){ reset(); return; }
+    const el0 = row;
+    el0.style.transition = 'transform .2s var(--ease), opacity .2s';
+    el0.style.transform = 'translateX(' + (right ? 420 : -420) + 'px)';
+    el0.style.opacity = '0';
+    const doIt = right ? 'tdone' : 'delTask';
+    row = host = null; lock = null;
+    setTimeout(() => {
+      const t = S.tasks.find(x => x.id === id); if(!t) return;
+      if(doIt === 'tdone'){
+        t.done = !t.done; t.doneAt = t.done ? TODAY() : '';
+        save(true); render(); haptic(18);
+        if(t.done) toast('Nice — task done', 'ok');
+      } else {
+        S.tasks = S.tasks.filter(x => x.id !== id);
+        save(true); render(); haptic([10,40,10]); toast('Task deleted');
+      }
+    }, 190);
+  }, { passive:true });
+
+  document.addEventListener('touchcancel', reset, { passive:true });
+})();
+
+/* ---------- the FAB does the obvious thing for the view you are on ---------- */
+const FAB = {
+  today:   { act:'newHabit', label:'New habit' },
+  habits:  { act:'newHabit', label:'New habit' },
+  tasks:   { act:'newTask',  label:'New task'  },
+  journal: { act:'go',       label:'Focus timer', v:'focus' }
+};
+function paintFab(){
+  const f = el('fab'), cfg = FAB[V];
+  if(!f) return;
+  f.classList.toggle('gone', !cfg);
+  if(!cfg) return;
+  f.dataset.act = cfg.act;
+  if(cfg.v) f.dataset.v = cfg.v; else delete f.dataset.v;
+  f.setAttribute('aria-label', cfg.label);
+}
+
+/* ---------- numbers count up when you arrive at a view ---------- */
+/* Only on a view change — re-running it on every tick would be noise. */
+function countUp(node, to, suffix){
+  if(calm() || to === 0){ node.textContent = to + (suffix||''); return; }
+  const dur = 620, t0 = performance.now();
+  (function step(now){
+    const p = Math.min(1, (now - t0) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    node.textContent = Math.round(to * eased) + (suffix||'');
+    if(p < 1) requestAnimationFrame(step);
+  })(t0);
+}
+function animateNumbers(){
+  document.querySelectorAll('#content [data-count]').forEach(node => {
+    const raw = node.getAttribute('data-count');
+    const to = parseInt(raw, 10);
+    if(isNaN(to)) return;
+    countUp(node, to, node.getAttribute('data-suffix') || '');
+  });
+}
+
+/* ---------- a scrollable sheet says when there is more below ---------- */
+function markScrollable(){
+  document.querySelectorAll('.mb').forEach(b => {
+    const more = b.scrollHeight > b.clientHeight + 4 &&
+                 b.scrollTop + b.clientHeight < b.scrollHeight - 8;
+    b.classList.toggle('more', more);
+  });
+}
+document.addEventListener('scroll', e => {
+  if(e.target.classList && e.target.classList.contains('mb')) markScrollable();
+}, true);
+
+/* ---------- drag a bottom sheet down to dismiss ---------- */
+(function sheetDrag(){
+  let m = null, y0 = 0, dy = 0, fromTop = false;
+  document.addEventListener('touchstart', e => {
+    if(!isMobile() || e.touches.length !== 1) return;
+    const mod = e.target.closest('.modal'); if(!mod) return;
+    const body = e.target.closest('.mb');
+    /* only start a dismiss drag from the handle/header, or from a body
+       already scrolled to the top — otherwise you are scrolling content */
+    fromTop = !body || body.scrollTop <= 0;
+    if(!fromTop) return;
+    m = mod; y0 = e.touches[0].clientY; dy = 0;
+  }, { passive:true });
+
+  document.addEventListener('touchmove', e => {
+    if(!m || e.touches.length !== 1) return;
+    dy = e.touches[0].clientY - y0;
+    if(dy <= 0){ m.style.transform = ''; return; }
+    m.style.transition = 'none';
+    m.style.transform = 'translateY(' + dy.toFixed(1) + 'px)';
+  }, { passive:true });
+
+  document.addEventListener('touchend', () => {
+    if(!m) return;
+    const mod = m; m = null;
+    mod.style.transition = 'transform .24s var(--ease)';
+    if(dy > 110){ mod.style.transform = 'translateY(100%)'; haptic(8); setTimeout(closeModal, 200); }
+    else mod.style.transform = '';
+  }, { passive:true });
+})();
 
 /* =========================================================
    EVENTS
@@ -1866,7 +2329,14 @@ document.addEventListener('click', e => {
     case 'addTask': addTaskFromInput(); break;
     case 'newTask': resetScroll = true; go('tasks'); setTimeout(() => { const i = el('qaTitle'); if(i) i.focus(); }, 80); break;
     case 'tdone': { const t = S.tasks.find(x => x.id === id); t.done = !t.done; t.doneAt = t.done ? TODAY() : '';
-      save(true); render(); if(t.done) toast('Nice — task done', 'ok'); break; }
+      save(true); render();
+      haptic(t.done ? 16 : 8);
+      if(t.done){
+        const cb = document.querySelector('.cb[data-id="' + id + '"]');
+        if(cb && !calm()){ cb.classList.add('pop'); setTimeout(() => cb.classList.remove('pop'), 440); }
+        toast('Nice — task done', 'ok');
+      }
+      break; }
     case 'delTask': { const t = S.tasks.find(x => x.id === id); if(!t) break;
       S.tasks = S.tasks.filter(x => x.id !== id); save(true); closeModal(); render(); toast('Task deleted'); break; }
     case 'editTask': editTask(id); break;
@@ -1968,6 +2438,13 @@ window.addEventListener('pagehide', commit);
 document.addEventListener('visibilitychange', () => { if(document.hidden) commit(); });
 window.addEventListener('blur', commit);
 
+/* Rotating the phone flips the mobile-only layout branches, so repaint. */
+let lastMobile = null;
+addEventListener('resize', () => {
+  const m = isMobile();
+  if(m !== lastMobile){ lastMobile = m; render(); }
+}, { passive:true });
+
 /* Two windows open on the same machine? Keep them in step. */
 window.addEventListener('storage', e => {
   if(!e || e.key !== KEY || !e.newValue) return;
@@ -2021,7 +2498,8 @@ setInterval(() => {
   if(bootNotice){
     setTimeout(() => toast(DB.ok ? 'Check the notice at the top' : 'Not saving — see the notice at the top', 'err'), 600);
   } else if(!S.habits.length && !S.tasks.length){
-    setTimeout(() => toast('Welcome to Momentum — press H to add your first habit', 'ok'), 700);
+    setTimeout(() => toast(mqCoarse.matches ? 'Welcome to Momentum — tap + to add your first habit'
+                                            : 'Welcome to Momentum — press H to add your first habit', 'ok'), 700);
   }
   /* belt and braces: a periodic commit means even a hard kill loses nothing */
   setInterval(() => { flush(); saveSession(true); }, 15000);
